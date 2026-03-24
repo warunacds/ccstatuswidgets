@@ -13,7 +13,7 @@ import (
 	"github.com/warunacds/ccstatuswidgets/internal/widget"
 )
 
-const cacheTTL = 5 * time.Minute
+const defaultCacheTTL = 5 * time.Minute
 
 // Engine orchestrates concurrent widget execution with timeout and cache fallback.
 type Engine struct {
@@ -103,12 +103,14 @@ func (e *Engine) executeWidget(w widget.Widget, input *protocol.StatusLineInput,
 		ch <- result{output: out, err: err}
 	}()
 
+	ttl := e.getCacheTTL(widgetCfg)
+
 	select {
 	case res := <-ch:
 		if res.err != nil {
 			return e.fromCache(w.Name())
 		}
-		e.toCache(w.Name(), res.output)
+		e.toCache(w.Name(), res.output, ttl)
 		return res.output
 
 	case <-time.After(timeout):
@@ -130,11 +132,27 @@ func (e *Engine) fromCache(name string) *protocol.WidgetOutput {
 	return &out
 }
 
-// toCache stores a widget's output in the cache with the standard TTL.
-func (e *Engine) toCache(name string, out *protocol.WidgetOutput) {
+// getCacheTTL returns the cache TTL for a widget from its config,
+// falling back to defaultCacheTTL if unset or invalid.
+func (e *Engine) getCacheTTL(widgetCfg map[string]interface{}) time.Duration {
+	if widgetCfg == nil {
+		return defaultCacheTTL
+	}
+	if v, ok := widgetCfg["cache_ttl"]; ok {
+		if s, ok := v.(string); ok {
+			if d, err := time.ParseDuration(s); err == nil {
+				return d
+			}
+		}
+	}
+	return defaultCacheTTL
+}
+
+// toCache stores a widget's output in the cache with the given TTL.
+func (e *Engine) toCache(name string, out *protocol.WidgetOutput, ttl time.Duration) {
 	data, err := json.Marshal(out)
 	if err != nil {
 		return
 	}
-	e.cache.Set(name, data, cacheTTL)
+	e.cache.Set(name, data, ttl)
 }

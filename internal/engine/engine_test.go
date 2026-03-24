@@ -275,6 +275,107 @@ func TestSuccessfulWidgetUpdatesCache(t *testing.T) {
 	}
 }
 
+// --- Cache TTL tests ---
+
+func testConfigWithWidgetCfg(widgetName string, widgetCfg map[string]interface{}) *config.Config {
+	return &config.Config{
+		TimeoutMs: 500,
+		Lines: []config.LineConfig{
+			{Widgets: []string{widgetName}},
+		},
+		Widgets: map[string]map[string]interface{}{
+			widgetName: widgetCfg,
+		},
+	}
+}
+
+func TestCacheTTLFromWidgetConfig(t *testing.T) {
+	reg := widget.NewRegistry()
+	reg.Register(&fastWidget{name: "ttl-widget", output: &protocol.WidgetOutput{Text: "ttl", Color: "green"}})
+
+	c := cache.New(t.TempDir())
+	eng := New(reg, c, 500*time.Millisecond)
+	cfg := testConfigWithWidgetCfg("ttl-widget", map[string]interface{}{
+		"cache_ttl": "1s",
+	})
+
+	eng.Run(testInput(), cfg)
+
+	// Cache entry should exist immediately after run.
+	if _, ok := c.Get("ttl-widget"); !ok {
+		t.Fatal("expected cache entry for 'ttl-widget' immediately after run")
+	}
+
+	// Wait for the 1s TTL to expire.
+	time.Sleep(1100 * time.Millisecond)
+
+	// Cache entry should now be expired.
+	if _, ok := c.Get("ttl-widget"); ok {
+		t.Fatal("expected cache entry for 'ttl-widget' to be expired after 1s TTL")
+	}
+}
+
+func TestCacheTTLDefaultWhenNoConfig(t *testing.T) {
+	reg := widget.NewRegistry()
+	reg.Register(&fastWidget{name: "default-ttl", output: &protocol.WidgetOutput{Text: "ok", Color: "blue"}})
+
+	c := cache.New(t.TempDir())
+	eng := New(reg, c, 500*time.Millisecond)
+	// No widget config at all — should use defaultCacheTTL (5 minutes).
+	cfg := testConfig("default-ttl")
+
+	eng.Run(testInput(), cfg)
+
+	// Cache entry should exist well within the 5-minute default.
+	if _, ok := c.Get("default-ttl"); !ok {
+		t.Fatal("expected cache entry for 'default-ttl' with default TTL")
+	}
+}
+
+func TestCacheTTLInvalidStringUsesDefault(t *testing.T) {
+	reg := widget.NewRegistry()
+	reg.Register(&fastWidget{name: "bad-ttl", output: &protocol.WidgetOutput{Text: "ok", Color: "red"}})
+
+	c := cache.New(t.TempDir())
+	eng := New(reg, c, 500*time.Millisecond)
+	cfg := testConfigWithWidgetCfg("bad-ttl", map[string]interface{}{
+		"cache_ttl": "not-a-duration",
+	})
+
+	eng.Run(testInput(), cfg)
+
+	// Should fall back to default TTL (5 min), so cache should still be valid.
+	if _, ok := c.Get("bad-ttl"); !ok {
+		t.Fatal("expected cache entry for 'bad-ttl' with default TTL (invalid cache_ttl should be ignored)")
+	}
+}
+
+func TestGetCacheTTL(t *testing.T) {
+	eng := &Engine{}
+
+	tests := []struct {
+		name     string
+		cfg      map[string]interface{}
+		expected time.Duration
+	}{
+		{"nil config", nil, defaultCacheTTL},
+		{"empty config", map[string]interface{}{}, defaultCacheTTL},
+		{"valid 10s", map[string]interface{}{"cache_ttl": "10s"}, 10 * time.Second},
+		{"valid 2m", map[string]interface{}{"cache_ttl": "2m"}, 2 * time.Minute},
+		{"invalid string", map[string]interface{}{"cache_ttl": "bad"}, defaultCacheTTL},
+		{"wrong type int", map[string]interface{}{"cache_ttl": 42}, defaultCacheTTL},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := eng.getCacheTTL(tt.cfg)
+			if got != tt.expected {
+				t.Errorf("getCacheTTL(%v) = %v, want %v", tt.cfg, got, tt.expected)
+			}
+		})
+	}
+}
+
 // --- assertion helper ---
 
 func assertResult(t *testing.T, wr renderer.WidgetResult, name, text, color string) {
