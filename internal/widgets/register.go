@@ -25,4 +25,5 @@ func RegisterAll(r *widget.Registry) {
 	r.Register(&StocksWidget{})
 	r.Register(&HackernewsWidget{})
 	r.Register(&PomodoroWidget{})
+	r.Register(&SessionTimeWidget{})
 }
