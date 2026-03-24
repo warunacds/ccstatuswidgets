@@ -51,6 +51,29 @@ Config lives at `~/.ccstatuswidgets/config.json`:
 | `lines` | Array of line configs. Each line lists widget names in display order. |
 | `widgets` | Per-widget overrides. Keys are widget names, values are widget-specific options. |
 
+### Phase 2 widget configuration
+
+Add Phase 2 widgets to your `lines` array, then configure them under `widgets`:
+
+```json
+{
+  "lines": [
+    { "widgets": ["model", "effort", "directory", "git-branch", "context-bar", "usage-5h", "usage-7d"] },
+    { "widgets": ["lines-changed", "cost", "memory", "weather", "moon", "pomodoro"] },
+    { "widgets": ["stocks", "hackernews", "now-playing"] }
+  ],
+  "widgets": {
+    "weather": { "city": "Colombo", "units": "metric" },
+    "stocks": { "symbols": ["AAPL", "TSLA"] },
+    "cricket": { "api_key": "your_key", "team": "SL" },
+    "flight": { "api_key": "your_key", "flight": "UL504" },
+    "pomodoro": { "work_mins": 25, "break_mins": 5 }
+  }
+}
+```
+
+Widgets that require an API key (`cricket`, `flight`) will silently return nothing if the key is not configured. The `weather` widget uses wttr.in which requires no key. The `stocks` widget uses Yahoo Finance's public endpoint.
+
 ## Built-in widgets
 
 | Widget | Description | Source | Color |
@@ -65,6 +88,14 @@ Config lives at `~/.ccstatuswidgets/config.json`:
 | `lines-changed` | Lines added and removed | stdin JSON | green(+) / red(-) |
 | `cost` | Session cost in USD | stdin JSON | dim |
 | `memory` | Parent process RSS memory | `ps` | dim |
+| `weather` | Current weather via wttr.in | HTTP | yellow |
+| `now-playing` | Currently playing track (macOS/Linux) | OS media API | magenta |
+| `flight` | Live flight tracking via AviationStack | HTTP | cyan |
+| `cricket` | Live cricket scores | HTTP | green |
+| `stocks` | Stock price changes (green/red) | HTTP | raw ANSI |
+| `hackernews` | Top Hacker News story | HTTP | yellow |
+| `moon` | Current moon phase | computed | dim |
+| `pomodoro` | Pomodoro work/break timer | local state file | red/green |
 
 Bar-based widgets (context-bar, usage-5h, usage-7d) change color based on percentage: green (<50%), yellow (50-79%), red (80%+).
 
@@ -77,6 +108,78 @@ Bar-based widgets (context-bar, usage-5h, usage-7d) change color based on percen
 | `ccw doctor` | Checks installation health: config validity, Claude Code settings, git and python3 availability. |
 | `ccw preview` | Renders a sample status line using realistic mock data. Useful for testing your config. |
 | `ccw version` | Prints version information. |
+| `ccw pomo start` | Start a Pomodoro work session (25 min default). |
+| `ccw pomo stop` | Stop the current Pomodoro timer. |
+| `ccw pomo skip` | Skip to the next phase (work to break, or break to work). |
+| `ccw pomo status` | Show the current Pomodoro timer status. |
+| `ccw track <flight>` | Show live tracking info for a flight (e.g. `ccw track UL504`). |
+| `ccw hn` | Display the top 5 Hacker News stories in your terminal. |
+| `ccw plugin add <repo>` | Install a plugin from a Git repository. |
+| `ccw plugin list` | List all installed plugins. |
+| `ccw plugin remove <name>` | Remove an installed plugin. |
+
+## Shortcut commands
+
+```bash
+# Pomodoro timer
+ccw pomo start          # Start a 25-minute work session
+ccw pomo skip           # Skip to break (or back to work)
+ccw pomo status         # Check remaining time
+ccw pomo stop           # Cancel the timer
+
+# Flight tracking
+ccw track UL504         # Live status for a flight
+
+# Hacker News
+ccw hn                  # Top 5 stories from HN
+```
+
+## Plugin system
+
+ccstatuswidgets supports third-party plugins that add custom widgets to your status line.
+
+### Installing plugins
+
+```bash
+ccw plugin add github.com/user/my-ccw-plugin
+ccw plugin list
+ccw plugin remove my-ccw-plugin
+```
+
+A plugin repository must contain a `plugin.json` at its root:
+
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "description": "Shows my custom data",
+  "command": "python3 main.py"
+}
+```
+
+The plugin command is executed by the engine during each render cycle. It must print a JSON object to stdout:
+
+```json
+{"text": "my data", "color": "cyan"}
+```
+
+### Python SDK
+
+For Python-based plugins, install the helper SDK:
+
+```bash
+pip install ccstatuswidgets
+```
+
+Example plugin using the SDK:
+
+```python
+from ccstatuswidgets import widget, output
+
+@widget("my-widget")
+def run(config):
+    return output("Hello from plugin", color="cyan")
+```
 
 ## Useful commands
 
