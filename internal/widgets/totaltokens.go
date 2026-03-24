@@ -20,7 +20,7 @@ func (w *TotalTokensWidget) Render(input *protocol.StatusLineInput, cfg map[stri
 	}
 
 	return &protocol.WidgetOutput{
-		Text:  fmt.Sprintf("%s tokens", compactTokenCount(total)),
+		Text:  fmt.Sprintf("%s tokens", formatTokenCount(total)),
 		Color: "dim",
 	}, nil
 }
