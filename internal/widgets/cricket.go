@@ -9,180 +9,169 @@ import (
 	"github.com/warunacds/ccstatuswidgets/internal/protocol"
 )
 
-// teamAbbreviations maps full team names to short codes.
-var teamAbbreviations = map[string]string{
-	"Sri Lanka":    "SL",
-	"Australia":    "AUS",
-	"India":        "IND",
-	"England":      "ENG",
-	"Pakistan":     "PAK",
-	"South Africa": "SA",
-	"New Zealand":  "NZ",
-	"West Indies":  "WI",
-	"Bangladesh":   "BAN",
-	"Afghanistan":  "AFG",
-	"Zimbabwe":     "ZIM",
-	"Ireland":      "IRE",
-	"Netherlands":  "NED",
-	"Scotland":     "SCO",
-	"Nepal":        "NEP",
-	"Oman":         "OMA",
-	"Namibia":      "NAM",
-	"UAE":          "UAE",
-	"USA":          "USA",
-}
-
-// cricketAPIResponse represents the response from the cricket API.
-type cricketAPIResponse struct {
-	Data []cricketMatch `json:"data"`
-}
-
-type cricketMatch struct {
-	Name         string         `json:"name"`
-	Status       string         `json:"status"`
-	MatchType    string         `json:"matchType"`
-	Teams        []string       `json:"teams"`
-	Score        []cricketScore `json:"score"`
-	MatchStarted bool           `json:"matchStarted"`
-	MatchEnded   bool           `json:"matchEnded"`
-}
-
-type cricketScore struct {
-	Runs    int     `json:"r"`
-	Wickets int     `json:"w"`
-	Overs   float64 `json:"o"`
-	Inning  string  `json:"inning"`
-}
-
-// CricketWidget displays live cricket scores.
+// CricketWidget displays live cricket scores using ESPN's free API.
+// No API key required.
 type CricketWidget struct{}
 
 func (w *CricketWidget) Name() string {
 	return "cricket"
 }
 
-func (w *CricketWidget) Render(input *protocol.StatusLineInput, cfg map[string]interface{}) (*protocol.WidgetOutput, error) {
-	apiKey, ok := cfg["api_key"].(string)
-	if !ok || apiKey == "" {
-		return nil, nil
-	}
+// ESPN scoreboard response structures.
+type espnScoreboard struct {
+	Events []espnEvent `json:"events"`
+}
 
-	baseURL := "https://api.cricapi.com/v1"
+type espnEvent struct {
+	Name         string           `json:"name"`
+	Status       espnStatus       `json:"status"`
+	Competitions []espnCompetition `json:"competitions"`
+}
+
+type espnStatus struct {
+	Type espnStatusType `json:"type"`
+}
+
+type espnStatusType struct {
+	ID          string `json:"id"`
+	Description string `json:"description"`
+	Detail      string `json:"detail"`
+	State       string `json:"state"`
+}
+
+type espnCompetition struct {
+	Competitors []espnCompetitor `json:"competitors"`
+	Status      espnStatus       `json:"status"`
+}
+
+type espnCompetitor struct {
+	Team  espnTeam `json:"team"`
+	Score string   `json:"score"`
+}
+
+type espnTeam struct {
+	Abbreviation string `json:"abbreviation"`
+	DisplayName  string `json:"displayName"`
+	ShortName    string `json:"shortDisplayName"`
+}
+
+// Default leagues to check: IPL (8048), International (8676)
+var defaultLeagues = []string{"8048", "8676"}
+
+func (w *CricketWidget) Render(input *protocol.StatusLineInput, cfg map[string]interface{}) (*protocol.WidgetOutput, error) {
+	baseURL := "http://site.api.espn.com/apis/site/v2/sports/cricket"
 	if v, ok := cfg["base_url"].(string); ok && v != "" {
 		baseURL = v
 	}
 
-	teamFilter := ""
-	if v, ok := cfg["team"].(string); ok {
-		teamFilter = v
-	}
-
-	url := fmt.Sprintf("%s/currentMatches?apikey=%s", baseURL, apiKey)
-
-	client := httpclient.New()
-	body, err := client.Get(url)
-	if err != nil {
-		return nil, nil
-	}
-
-	var resp cricketAPIResponse
-	if err := json.Unmarshal(body, &resp); err != nil {
-		return nil, nil
-	}
-
-	if len(resp.Data) == 0 {
-		return nil, nil
-	}
-
-	// Find the relevant match
-	var match *cricketMatch
-	for i := range resp.Data {
-		m := &resp.Data[i]
-		if teamFilter != "" {
-			if !matchInvolvesTeam(m, teamFilter) {
-				continue
+	// Get leagues to check
+	leagues := defaultLeagues
+	if v, ok := cfg["leagues"]; ok {
+		if arr, ok := v.([]interface{}); ok {
+			leagues = nil
+			for _, l := range arr {
+				if s, ok := l.(string); ok {
+					leagues = append(leagues, s)
+				}
 			}
 		}
-		match = m
-		break
 	}
 
-	if match == nil {
-		return nil, nil
+	teamFilter := ""
+	if v, ok := cfg["team"].(string); ok {
+		teamFilter = strings.ToUpper(v)
 	}
 
-	text := formatMatchText(match)
+	client := httpclient.New()
 
-	return &protocol.WidgetOutput{
-		Text:  text,
-		Color: "green",
-	}, nil
-}
+	for _, league := range leagues {
+		url := fmt.Sprintf("%s/%s/scoreboard", baseURL, league)
+		body, err := client.Get(url)
+		if err != nil {
+			continue
+		}
 
-// matchInvolvesTeam checks if the match involves the given team abbreviation.
-func matchInvolvesTeam(m *cricketMatch, teamCode string) bool {
-	for _, team := range m.Teams {
-		abbr := abbreviateTeam(team)
-		if strings.EqualFold(abbr, teamCode) {
-			return true
+		var sb espnScoreboard
+		if err := json.Unmarshal(body, &sb); err != nil {
+			continue
+		}
+
+		for _, event := range sb.Events {
+			if len(event.Competitions) == 0 {
+				continue
+			}
+
+			comp := event.Competitions[0]
+			if len(comp.Competitors) < 2 {
+				continue
+			}
+
+			// Team filter
+			if teamFilter != "" {
+				found := false
+				for _, c := range comp.Competitors {
+					if strings.EqualFold(c.Team.Abbreviation, teamFilter) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
+			}
+
+			text := formatESPNMatch(comp, event.Status)
+			if text == "" {
+				continue
+			}
+
+			return &protocol.WidgetOutput{
+				Text:  text,
+				Color: "green",
+			}, nil
 		}
 	}
-	return false
+
+	return nil, nil
 }
 
-// abbreviateTeam converts a full team name to its short code.
-func abbreviateTeam(name string) string {
-	if abbr, ok := teamAbbreviations[name]; ok {
-		return abbr
-	}
-	// Fallback: use first 3 characters uppercased
-	if len(name) >= 3 {
-		return strings.ToUpper(name[:3])
-	}
-	return strings.ToUpper(name)
-}
-
-// formatMatchText produces the display string for a cricket match.
-func formatMatchText(m *cricketMatch) string {
-	if m.MatchEnded {
-		return formatCompletedMatch(m)
-	}
-	return formatLiveMatch(m)
-}
-
-// formatLiveMatch shows the current batting score.
-func formatLiveMatch(m *cricketMatch) string {
-	if len(m.Score) == 0 {
-		// No score yet, show teams
-		return fmt.Sprintf("\U0001F3CF %s v %s", abbreviateTeam(m.Teams[0]), abbreviateTeam(m.Teams[1]))
+func formatESPNMatch(comp espnCompetition, status espnStatus) string {
+	if len(comp.Competitors) < 2 {
+		return ""
 	}
 
-	// Show the latest innings score
-	latest := m.Score[len(m.Score)-1]
-	// Extract the team abbreviation from the inning string
-	teamAbbr := extractTeamFromInning(latest.Inning, m.Teams)
+	t1 := comp.Competitors[0]
+	t2 := comp.Competitors[1]
 
-	return fmt.Sprintf("\U0001F3CF %s %d/%d (%.1f)", teamAbbr, latest.Runs, latest.Wickets, latest.Overs)
-}
+	state := strings.ToLower(status.Type.State)
 
-// formatCompletedMatch shows the result.
-func formatCompletedMatch(m *cricketMatch) string {
-	if len(m.Teams) >= 2 {
-		return fmt.Sprintf("\U0001F3CF %s v %s - %s", abbreviateTeam(m.Teams[0]), abbreviateTeam(m.Teams[1]), m.Status)
-	}
-	return fmt.Sprintf("\U0001F3CF %s", m.Status)
-}
-
-// extractTeamFromInning finds which team is batting from the inning string.
-func extractTeamFromInning(inning string, teams []string) string {
-	for _, team := range teams {
-		if strings.Contains(inning, team) {
-			return abbreviateTeam(team)
+	switch state {
+	case "in":
+		// Live match — show scores
+		parts := []string{"\U0001F3CF"}
+		for _, c := range comp.Competitors {
+			if c.Score != "" {
+				parts = append(parts, fmt.Sprintf("%s %s", c.Team.Abbreviation, c.Score))
+			}
 		}
+		if status.Type.Detail != "" {
+			parts = append(parts, fmt.Sprintf("(%s)", status.Type.Detail))
+		}
+		return strings.Join(parts, " ")
+
+	case "post":
+		// Completed — show result
+		desc := status.Type.Description
+		if desc == "" {
+			desc = status.Type.Detail
+		}
+		return fmt.Sprintf("\U0001F3CF %s v %s - %s", t1.Team.Abbreviation, t2.Team.Abbreviation, desc)
+
+	case "pre":
+		// Upcoming
+		return fmt.Sprintf("\U0001F3CF %s v %s - %s", t1.Team.Abbreviation, t2.Team.Abbreviation, status.Type.Detail)
+
+	default:
+		return fmt.Sprintf("\U0001F3CF %s v %s", t1.Team.Abbreviation, t2.Team.Abbreviation)
 	}
-	// Fallback: use first team
-	if len(teams) > 0 {
-		return abbreviateTeam(teams[0])
-	}
-	return "???"
 }

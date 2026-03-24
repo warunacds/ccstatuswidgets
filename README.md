@@ -120,7 +120,7 @@ ccw init
 | `stocks` | `AAPL +1.2% TSLA -3.1%` | Stock price changes | No |
 | `pomodoro` | `🍅 18:42` / `☕ 3:21` | Pomodoro work/break timer | No |
 | `flight` | `✈ UL504 ⬆ active` | Live flight tracking | Yes (AviationStack) |
-| `cricket` | `🏏 SL 245/3 (42.1)` | Live cricket scores | Yes (CricAPI) |
+| `cricket` | `🏏 SL 245/3 (42.1)` | Live cricket scores via ESPN | No |
 
 > Bar widgets change color based on usage: 🟢 green (<50%), 🟡 yellow (50–79%), 🔴 red (80%+)
 
@@ -200,17 +200,15 @@ You can also set the flight dynamically: `ccw track UL504`
 <details>
 <summary><b>Cricket</b></summary>
 
-Uses [CricAPI](https://cricketdata.org/) for live cricket scores. Sign up for a free API key (100 requests/day on the free plan):
-
-1. Create an account at [cricketdata.org](https://cricketdata.org/)
-2. Copy your API key from the dashboard
-3. Add to config:
+Uses ESPN's free cricket API — **no API key required**.
 
 ```json
-"cricket": { "api_key": "your_key", "team": "SL" }
+"cricket": { "team": "SL" }
 ```
-- `api_key` — your CricAPI key
-- `team` — optional filter to show only matches for your team (e.g., `SL`, `AUS`, `IND`)
+- `team` — optional filter to show only matches for your team (e.g., `SL`, `AUS`, `IND`, `RCB`)
+- `leagues` — optional array of ESPN league IDs to check (default: `["8048", "8676"]` for IPL + International)
+
+Common league IDs: `8048` (IPL), `8676` (International), `8044` (Big Bash), `8052` (CPL)
 </details>
 
 <details>
