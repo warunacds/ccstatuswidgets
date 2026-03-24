@@ -21,8 +21,11 @@ func (w *MemoryWidget) Render(input *protocol.StatusLineInput, cfg map[string]in
 	pid := os.Getppid()
 	if cfg != nil {
 		if v, ok := cfg["pid"]; ok {
-			if p, ok := v.(int); ok {
+			switch p := v.(type) {
+			case int:
 				pid = p
+			case float64:
+				pid = int(p)
 			}
 		}
 	}

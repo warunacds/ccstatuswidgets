@@ -83,5 +83,6 @@ func (c *Cache) Set(key string, value []byte, ttl time.Duration) {
 }
 
 func (c *Cache) path(key string) string {
-	return filepath.Join(c.dir, key+".json")
+	// Use filepath.Base to prevent directory traversal via cache keys.
+	return filepath.Join(c.dir, filepath.Base(key)+".json")
 }

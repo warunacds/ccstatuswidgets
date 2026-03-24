@@ -1,6 +1,9 @@
 package widgets
 
-import "math"
+import (
+	"math"
+	"strings"
+)
 
 const (
 	filledBlock = "\u2588"
@@ -16,14 +19,7 @@ func BuildBar(pct float64, width int) string {
 	if filled < 0 {
 		filled = 0
 	}
-	bar := ""
-	for i := 0; i < filled; i++ {
-		bar += filledBlock
-	}
-	for i := filled; i < width; i++ {
-		bar += emptyBlock
-	}
-	return bar
+	return strings.Repeat(filledBlock, filled) + strings.Repeat(emptyBlock, width-filled)
 }
 
 // BarColor returns a color name based on the percentage threshold.

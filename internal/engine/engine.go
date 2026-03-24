@@ -44,11 +44,6 @@ type widgetJob struct {
 // Each widget has a timeout; on timeout or error, the last cached result is used as fallback.
 // If no cached result exists, the output is nil. Order is preserved via indexed slots.
 func (e *Engine) Run(input *protocol.StatusLineInput, cfg *config.Config) [][]renderer.WidgetResult {
-	timeout := e.timeout
-	if cfg.TimeoutMs > 0 {
-		timeout = time.Duration(cfg.TimeoutMs) * time.Millisecond
-	}
-
 	// Build the result grid and collect jobs.
 	results := make([][]renderer.WidgetResult, len(cfg.Lines))
 	var jobs []widgetJob
@@ -82,7 +77,7 @@ func (e *Engine) Run(input *protocol.StatusLineInput, cfg *config.Config) [][]re
 	for _, job := range jobs {
 		go func(j widgetJob) {
 			defer wg.Done()
-			output := e.executeWidget(j.w, input, j.widgetCfg, timeout)
+			output := e.executeWidget(j.w, input, j.widgetCfg, e.timeout)
 			results[j.lineIdx][j.slotIdx].Output = output
 		}(job)
 	}
@@ -93,6 +88,9 @@ func (e *Engine) Run(input *protocol.StatusLineInput, cfg *config.Config) [][]re
 
 // executeWidget runs a single widget with a timeout. On success the result is cached.
 // On timeout or error, the cached value is returned (or nil if no cache entry exists).
+// NOTE: On timeout, the goroutine running Render is not cancelled. This is safe because
+// the process exits shortly after Run returns. If the engine is used in a long-running
+// context, consider adding context.Context support to the Widget interface.
 func (e *Engine) executeWidget(w widget.Widget, input *protocol.StatusLineInput, widgetCfg map[string]interface{}, timeout time.Duration) *protocol.WidgetOutput {
 	type result struct {
 		output *protocol.WidgetOutput
