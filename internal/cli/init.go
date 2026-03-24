@@ -84,6 +84,7 @@ func patchClaudeSettings() error {
 	}
 
 	settings["statusLine"] = map[string]interface{}{
+		"type":    "command",
 		"command": exePath,
 	}
 
