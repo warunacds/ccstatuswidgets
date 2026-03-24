@@ -307,6 +307,9 @@ ccw add moon --rc 3:3
 
 Extend ccstatuswidgets with community plugins. Plugins are standalone executables that receive JSON on stdin and write JSON to stdout.
 
+![Status line with plugins](https://raw.githubusercontent.com/warunacds/ccstatuswidgets/main/screenshots/demo-with-plugins.png)
+*Status line with all built-in widgets + battery, uptime, docker, and IP plugins enabled*
+
 ### Official Plugins
 
 | Plugin | Description | Install |
