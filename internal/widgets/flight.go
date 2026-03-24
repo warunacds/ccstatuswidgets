@@ -126,11 +126,17 @@ type aeroDataBoxAirport struct {
 	Airport struct {
 		IATA string `json:"iata"`
 	} `json:"airport"`
-	ActualTime    string `json:"actualTime"`
-	EstimatedTime string `json:"estimatedTime"`
-	ScheduledTime string `json:"scheduledTime"`
-	Terminal      string `json:"terminal"`
-	Gate          string `json:"gate"`
+	ActualTime    *aeroTime `json:"actualTime"`
+	RevisedTime   *aeroTime `json:"revisedTime"`
+	PredictedTime *aeroTime `json:"predictedTime"`
+	ScheduledTime *aeroTime `json:"scheduledTime"`
+	Terminal      string    `json:"terminal"`
+	Gate          string    `json:"gate"`
+}
+
+type aeroTime struct {
+	UTC   string `json:"utc"`
+	Local string `json:"local"`
 }
 
 func fetchAeroDataBox(apiKey, flight string, cfg map[string]interface{}) (*flightData, error) {
@@ -174,11 +180,26 @@ func fetchAeroDataBox(apiKey, flight string, cfg map[string]interface{}) (*fligh
 		Status:   status,
 		DepIATA:  f.Departure.Airport.IATA,
 		ArrIATA:  f.Arrival.Airport.IATA,
-		DepTime:  pickTimeRaw(f.Departure.ActualTime, f.Departure.EstimatedTime, f.Departure.ScheduledTime),
-		ArrTime:  pickTimeRaw(f.Arrival.ActualTime, f.Arrival.EstimatedTime, f.Arrival.ScheduledTime),
+		DepTime:  pickAeroTime(f.Departure.ActualTime, f.Departure.RevisedTime, f.Departure.PredictedTime, f.Departure.ScheduledTime),
+		ArrTime:  pickAeroTime(f.Arrival.ActualTime, f.Arrival.RevisedTime, f.Arrival.PredictedTime, f.Arrival.ScheduledTime),
 		Terminal: f.Departure.Terminal,
 		Gate:     f.Departure.Gate,
 	}, nil
+}
+
+// pickAeroTime returns the best available local time from AeroDataBox time objects.
+// Priority: actual > revised > predicted > scheduled. Uses local time for display.
+func pickAeroTime(times ...*aeroTime) string {
+	for _, t := range times {
+		if t != nil && t.Local != "" {
+			return t.Local
+		}
+		if t != nil && t.UTC != "" {
+			// Convert UTC format "2026-03-24 14:00Z" to ISO for consistency
+			return strings.Replace(t.UTC, " ", "T", 1)
+		}
+	}
+	return ""
 }
 
 func mapAeroStatus(s string) string {
@@ -278,12 +299,22 @@ func computeProgress(fd *flightData, cfg map[string]interface{}) float64 {
 	return flightProgress(f, cfg)
 }
 
-// pickTimeFromISO extracts HH:MM from an ISO timestamp string.
+// pickTimeFromISO extracts HH:MM from a timestamp string.
+// Handles both ISO 8601 ("2026-03-24T14:00:00+00:00") and
+// AeroDataBox local format ("2026-03-24 14:00+08:00").
 func pickTimeFromISO(s string) string {
 	if s == "" {
 		return ""
 	}
+	// Try "T" separator (ISO 8601)
 	if idx := strings.Index(s, "T"); idx >= 0 {
+		rest := s[idx+1:]
+		if len(rest) >= 5 {
+			return rest[:5]
+		}
+	}
+	// Try space separator (AeroDataBox local: "2026-03-24 14:00+08:00")
+	if idx := strings.Index(s, " "); idx >= 0 {
 		rest := s[idx+1:]
 		if len(rest) >= 5 {
 			return rest[:5]
@@ -349,13 +380,17 @@ func pickTimeRaw(actual, estimated, scheduled string) string {
 	return ""
 }
 
-// parseISO parses an ISO 8601 timestamp.
+// parseISO parses an ISO 8601 or AeroDataBox timestamp.
 func parseISO(s string) time.Time {
 	for _, layout := range []string{
 		"2006-01-02T15:04:05-07:00",
 		"2006-01-02T15:04:05Z",
 		"2006-01-02T15:04:05+00:00",
 		time.RFC3339,
+		"2006-01-02 15:04-07:00",    // AeroDataBox local
+		"2006-01-02 15:04Z",          // AeroDataBox UTC
+		"2006-01-02T15:04Z",          // AeroDataBox UTC with T
+		"2006-01-02 15:04:05-07:00",  // AeroDataBox with seconds
 	} {
 		if t, err := time.Parse(layout, s); err == nil {
 			return t

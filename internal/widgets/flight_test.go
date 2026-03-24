@@ -284,16 +284,18 @@ func TestFlightWidget_AeroDataBoxProvider(t *testing.T) {
 			return
 		}
 		fmt.Fprint(w, `[{
-			"status": "Airborne",
+			"status": "EnRoute",
 			"departure": {
 				"airport": {"iata": "SIN"},
-				"actualTime": "2026-03-24T14:00:00+00:00",
+				"scheduledTime": {"utc": "2026-03-24 06:00Z", "local": "2026-03-24 14:00+08:00"},
+				"revisedTime": {"utc": "2026-03-24 06:00Z", "local": "2026-03-24 14:00+08:00"},
 				"terminal": "3",
 				"gate": "A1"
 			},
 			"arrival": {
 				"airport": {"iata": "JNB"},
-				"estimatedTime": "2026-03-24T18:29:00+00:00"
+				"scheduledTime": {"utc": "2026-03-24 16:35Z", "local": "2026-03-24 18:35+02:00"},
+				"predictedTime": {"utc": "2026-03-24 16:29Z", "local": "2026-03-24 18:29+02:00"}
 			}
 		}]`)
 	}))
