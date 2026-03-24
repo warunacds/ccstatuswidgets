@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/warunacds/ccstatuswidgets/internal/protocol"
 )
@@ -55,18 +56,15 @@ func TestFlightWidget_RichOutput(t *testing.T) {
 		t.Fatal("expected non-nil output")
 	}
 
-	// Should contain: ✈ SQ478 SIN→JNB 14:00→18:29 T3/A1 ⬆
-	if !strings.Contains(out.Text, "SIN→JNB") {
-		t.Errorf("expected route in output, got %q", out.Text)
+	// Should contain: ✈ SQ478 SIN ━━━✈━━━ JNB 14:00→18:29 T3/A1
+	if !strings.Contains(out.Text, "SIN") || !strings.Contains(out.Text, "JNB") {
+		t.Errorf("expected airports in output, got %q", out.Text)
 	}
 	if !strings.Contains(out.Text, "14:00→18:29") {
 		t.Errorf("expected times in output, got %q", out.Text)
 	}
 	if !strings.Contains(out.Text, "T3/A1") {
 		t.Errorf("expected terminal/gate in output, got %q", out.Text)
-	}
-	if !strings.Contains(out.Text, "⬆") {
-		t.Errorf("expected active indicator in output, got %q", out.Text)
 	}
 	if out.Color != "cyan" {
 		t.Errorf("expected color %q, got %q", "cyan", out.Color)
@@ -175,6 +173,106 @@ func TestFlightWidget_ReturnsNilOnHTTPFailure(t *testing.T) {
 	out, _ := w.Render(&protocol.StatusLineInput{}, cfg)
 	if out != nil {
 		t.Errorf("expected nil, got %+v", out)
+	}
+}
+
+func TestBuildFlightBar(t *testing.T) {
+	// 0% — plane at start
+	bar := buildFlightBar(0, 10)
+	if !strings.HasPrefix(bar, "✈") {
+		t.Errorf("0%% bar should start with plane, got %q", bar)
+	}
+
+	// 50% — plane in middle
+	bar = buildFlightBar(0.5, 10)
+	if !strings.Contains(bar, "━") || !strings.Contains(bar, "✈") {
+		t.Errorf("50%% bar missing expected chars, got %q", bar)
+	}
+	// Count rune position of plane
+	runePos := 0
+	for _, r := range bar {
+		if string(r) == "✈" {
+			break
+		}
+		runePos++
+	}
+	if runePos < 3 || runePos > 7 {
+		t.Errorf("50%% bar plane should be near middle, got at rune pos %d in %q", runePos, bar)
+	}
+
+	// 100% — plane at end
+	bar = buildFlightBar(1.0, 10)
+	if !strings.HasSuffix(bar, "✈") {
+		t.Errorf("100%% bar should end with plane, got %q", bar)
+	}
+}
+
+func TestFlightProgress_Statuses(t *testing.T) {
+	landed := aviationFlight{FlightStatus: "landed"}
+	if p := flightProgressAt(landed, time.Now()); p != 1.0 {
+		t.Errorf("landed should be 1.0, got %f", p)
+	}
+
+	scheduled := aviationFlight{FlightStatus: "scheduled"}
+	if p := flightProgressAt(scheduled, time.Now()); p != 0.0 {
+		t.Errorf("scheduled should be 0.0, got %f", p)
+	}
+}
+
+func TestFlightProgress_Active(t *testing.T) {
+	f := aviationFlight{
+		FlightStatus: "active",
+		Departure: aviationAirport{
+			Actual: "2026-03-24T10:00:00+00:00",
+		},
+		Arrival: aviationAirport{
+			Estimated: "2026-03-24T20:00:00+00:00",
+		},
+	}
+
+	// 5 hours into a 10-hour flight = 50%
+	now := time.Date(2026, 3, 24, 15, 0, 0, 0, time.UTC)
+	pct := flightProgressAt(f, now)
+	if pct < 0.45 || pct > 0.55 {
+		t.Errorf("expected ~50%%, got %f", pct)
+	}
+
+	// At departure = 0%
+	pct = flightProgressAt(f, time.Date(2026, 3, 24, 10, 0, 0, 0, time.UTC))
+	if pct != 0.0 {
+		t.Errorf("expected 0%%, got %f", pct)
+	}
+
+	// At arrival = 100%
+	pct = flightProgressAt(f, time.Date(2026, 3, 24, 20, 0, 0, 0, time.UTC))
+	if pct != 1.0 {
+		t.Errorf("expected 100%%, got %f", pct)
+	}
+}
+
+func TestFlightWidget_RichOutputWithProgressBar(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, richFlightJSON)
+	}))
+	defer srv.Close()
+
+	w := &FlightWidget{}
+	cfg := map[string]interface{}{
+		"api_key":  "test_key",
+		"flight":   "SQ478",
+		"base_url": srv.URL,
+	}
+
+	out, err := w.Render(&protocol.StatusLineInput{}, cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Should contain the progress bar with SIN ... JNB
+	if !strings.Contains(out.Text, "SIN") || !strings.Contains(out.Text, "JNB") {
+		t.Errorf("expected airports in output, got %q", out.Text)
+	}
+	if !strings.Contains(out.Text, "✈") {
+		t.Errorf("expected plane in progress bar, got %q", out.Text)
 	}
 }
 
