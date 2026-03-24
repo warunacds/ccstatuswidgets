@@ -168,12 +168,24 @@ ccw hn                  # Top 5 stories from HN
 
 ccstatuswidgets supports third-party plugins that add custom widgets to your status line.
 
-### Installing plugins
+### Official plugins
+
+| Plugin | Description | Install |
+|--------|-------------|---------|
+| [uptime](https://github.com/warunacds/ccw-plugin-uptime) | System uptime (`⬆ 3d 12h`) | `ccw plugin add github.com/warunacds/ccw-plugin-uptime` |
+| [battery](https://github.com/warunacds/ccw-plugin-battery) | Battery level & charging (`🔋 78%` / `⚡ 100%`) | `ccw plugin add github.com/warunacds/ccw-plugin-battery` |
+| [docker](https://github.com/warunacds/ccw-plugin-docker) | Running container count (`🐳 4 containers`) | `ccw plugin add github.com/warunacds/ccw-plugin-docker` |
+| [ip](https://github.com/warunacds/ccw-plugin-ip) | Public IP address (`🌐 203.0.113.42`) | `ccw plugin add github.com/warunacds/ccw-plugin-ip` |
+
+After installing, enable with `ccw add <name>` (e.g., `ccw add uptime`).
+
+### Managing plugins
 
 ```bash
 ccw plugin add github.com/user/my-ccw-plugin
 ccw plugin list
 ccw plugin remove my-ccw-plugin
+ccw plugin update my-ccw-plugin
 ```
 
 A plugin repository must contain a `plugin.json` at its root:
