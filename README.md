@@ -1,50 +1,139 @@
+<div align="center">
+
+<pre>
+                 _        _                  _     _            _
+  ___ ___ ___ __| |_ __ _| |_ _   _ _____  (_) __| | __ _  ___| |_ ___
+ / __/ __/ __/ _` | __/ _` | __| | | / __\ \ /\ / / / _` |/ _` | __/ __|
+| (_| (__\__ \ (_| | || (_| | |_| |_| \__ \\ V  V /| | (_| | (_| | |_\__ \
+ \___\___|___/\__,_|\__\__,_|\__|\__,_|___/ \_/\_/ |_|\__,_|\__, |\__|___/
+                                                             |___/
+</pre>
+
 # ccstatuswidgets
 
-Customizable, plugin-ready status line for Claude Code CLI.
+**A customizable, plugin-ready status line for Claude Code CLI**
 
-## What it does
+*23 built-in widgets, external plugin system, and CLI tools — all in a single Go binary*
 
-ccstatuswidgets reads Claude Code's status line JSON from stdin, runs configured widgets concurrently with a timeout, and renders colored ANSI output. Widgets are arranged across multiple lines, each producing a text segment with an optional color. Results are cached so that slow widgets (like git operations) fall back gracefully.
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/warunacds/ccstatuswidgets/blob/main/LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/warunacds/ccstatuswidgets)](https://github.com/warunacds/ccstatuswidgets/releases)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/warunacds/ccstatuswidgets/graphs/commit-activity)
 
-## Example output
+![Demo](https://raw.githubusercontent.com/warunacds/ccstatuswidgets/main/screenshots/demo.png)
 
-```
-Opus 4.6 (high) myproject (main) ctx [||||......] 35% 5h [||........] 22% +2% ~2h30m 7d [|.........] 8% -6% ~5d0h
-+342 -87 api eq. $1.47 312MB
-```
+</div>
 
-Line 1: model, effort level, directory, git branch, context window bar, 5-hour and 7-day usage bars with pace indicators.
-Line 2: lines added/removed, session cost, parent process memory.
+---
 
-## Quick start
+## 📚 Table of Contents
+
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Built-in Widgets](#-built-in-widgets)
+- [Configuration](#-configuration)
+- [Managing Widgets](#-managing-widgets)
+- [CLI Commands](#-cli-commands)
+- [Plugin System](#-plugin-system)
+- [Creating Plugins](#-creating-plugins)
+- [Development](#-development)
+- [License](#-license)
+
+---
+
+## ✨ Features
+
+- **📊 23 Built-in Widgets** — model, tokens, git status, weather, stocks, cricket scores, moon phase, and more
+- **⚡ Fast** — Go binary with concurrent widget execution, renders in <10ms for built-in widgets
+- **🔌 Plugin System** — extend with community plugins via simple shell/Python scripts
+- **🎯 CLI Management** — `ccw add`, `ccw remove`, `ccw list` to manage widgets without editing JSON
+- **📐 Multi-line Layout** — arrange widgets across multiple status lines, any order
+- **🔄 Cache Fallback** — slow widgets (HTTP/git) fall back to cached results, per-widget TTL
+- **🍅 Pomodoro Timer** — built-in work/break timer with `ccw pomo` commands
+- **🌍 Cross-platform** — macOS and Linux, no external dependencies
+
+---
+
+## 🚀 Quick Start
+
+### Install
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/warunacds/ccstatuswidgets/main/install.sh | sh
 ccw init
 ```
 
-`ccw init` creates `~/.ccstatuswidgets/config.json`, sets up cache and plugin directories, and patches Claude Code's `~/.claude/settings.json` to point the `statusLine.command` to the `ccw` binary.
+That's it. Start Claude Code and the status line appears automatically.
+
+### What `ccw init` does
+
+1. Creates `~/.ccstatuswidgets/` with default config
+2. Patches `~/.claude/settings.json` to point `statusLine.command` to `ccw`
+3. Sets up cache and plugin directories
 
 ### Updating
 
-To update to the latest version, re-run the install script:
+Re-run the install script — your config is preserved, only the binary is replaced:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/warunacds/ccstatuswidgets/main/install.sh | sh
 ```
 
-Your config (`~/.ccstatuswidgets/config.json`) is preserved — only the binary is replaced.
-
-If you installed from source:
+<details>
+<summary><b>Install from source</b></summary>
 
 ```bash
+git clone https://github.com/warunacds/ccstatuswidgets.git
 cd ccstatuswidgets
-git pull
 go build -ldflags "-s -w -X github.com/warunacds/ccstatuswidgets/internal/cli.Version=$(git describe --tags)" -o ccw ./cmd/ccw
 sudo cp ccw /usr/local/bin/ccw
+ccw init
 ```
 
-## Configuration
+</details>
+
+---
+
+## 📊 Built-in Widgets
+
+### Core Widgets
+
+| Widget | Output | Description |
+|--------|--------|-------------|
+| `model` | `Opus 4.6` | Current model display name |
+| `effort` | `(high)` | Effort level from Claude settings |
+| `directory` | `myproject` | Basename of working directory |
+| `git-branch` | `(main)` | Current git branch |
+| `git-status` | `✓` or `✎ 3M 2U` | Working tree status (modified/untracked/added/deleted) |
+| `git-diff` | `staged: 4 files` | Staged changes count |
+| `tokens` | `↑12.4k ↓8.2k` | Input/output token counts |
+| `total-tokens` | `20.6k tokens` | Combined token count |
+| `session-time` | `⏱ 1h23m` | Elapsed session time |
+| `context-bar` | `ctx ████░░░░░░ 35%` | Context window usage bar |
+| `usage-5h` | `5h ██░░░░░░░░ 22% -8% ↻2h30m` | 5-hour rate limit with pace tracking |
+| `usage-7d` | `7d █░░░░░░░░░ 8% -21% ↻3d1h` | 7-day rate limit with pace tracking |
+| `lines-changed` | `+342 -87` | Lines added (green) / removed (red) |
+| `cost` | `api eq. $1.47` | Session cost (detects Max plan) |
+| `memory` | `542MB` | Parent process memory |
+
+### Fun Widgets
+
+| Widget | Output | Description | Needs API Key? |
+|--------|--------|-------------|----------------|
+| `weather` | `🌤 +33°C` | Current weather via [wttr.in](https://wttr.in) | No |
+| `now-playing` | `♪ Song - Artist` | Currently playing track (macOS + Linux) | No |
+| `hackernews` | `HN: Story Title` | Top Hacker News story | No |
+| `moon` | `🌒 waxing crescent` | Current moon phase | No |
+| `stocks` | `AAPL +1.2% TSLA -3.1%` | Stock price changes | No |
+| `pomodoro` | `🍅 18:42` / `☕ 3:21` | Pomodoro work/break timer | No |
+| `flight` | `✈ UL504 ⬆ active` | Live flight tracking | Yes (AviationStack) |
+| `cricket` | `🏏 SL 245/3 (42.1)` | Live cricket scores | Yes (CricAPI) |
+
+> Bar widgets change color based on usage: 🟢 green (<50%), 🟡 yellow (50–79%), 🔴 red (80%+)
+
+---
+
+## ⚙️ Configuration
 
 Config lives at `~/.ccstatuswidgets/config.json`:
 
@@ -59,171 +148,83 @@ Config lives at `~/.ccstatuswidgets/config.json`:
     "context-bar": { "bar_length": 10, "show_percentage": true },
     "usage-5h":    { "bar_length": 10, "show_percentage": true, "show_pace": true },
     "usage-7d":    { "bar_length": 10, "show_percentage": true, "show_pace": true },
-    "cost":        { "detect_max_plan": true }
+    "weather":     { "city": "Colombo", "units": "metric" },
+    "stocks":      { "symbols": ["AAPL", "TSLA"] },
+    "pomodoro":    { "work_mins": 25, "break_mins": 5 }
   }
 }
 ```
 
 | Option | Description |
 |--------|-------------|
-| `timeout_ms` | Maximum time (ms) to wait for all widgets before falling back to cache. Default: `500`. |
-| `lines` | Array of line configs. Each line lists widget names in display order. |
-| `widgets` | Per-widget overrides. Keys are widget names, values are widget-specific options. |
+| `timeout_ms` | Max time (ms) to wait for widgets before cache fallback. Default: `500` |
+| `lines` | Array of line configs. Each line lists widget names in display order |
+| `widgets` | Per-widget settings. Keys match widget names |
 
-### Phase 2 widget configuration
+### Widget-specific config
 
-Add Phase 2 widgets to your `lines` array, then configure them under `widgets`:
-
-```json
-{
-  "lines": [
-    { "widgets": ["model", "effort", "directory", "git-branch", "context-bar", "usage-5h", "usage-7d"] },
-    { "widgets": ["lines-changed", "cost", "memory", "weather", "moon", "pomodoro"] },
-    { "widgets": ["stocks", "hackernews", "now-playing"] }
-  ],
-  "widgets": {
-    "weather": { "city": "Colombo", "units": "metric" },
-    "stocks": { "symbols": ["AAPL", "TSLA"] },
-    "cricket": { "api_key": "your_key", "team": "SL" },
-    "flight": { "api_key": "your_key", "flight": "UL504" },
-    "pomodoro": { "work_mins": 25, "break_mins": 5 }
-  }
-}
-```
-
-Widgets that require an API key (`cricket`, `flight`) will silently return nothing if the key is not configured. The `weather` widget uses wttr.in which requires no key. The `stocks` widget uses Yahoo Finance's public endpoint.
-
-## Built-in widgets
-
-| Widget | Description | Source | Color |
-|--------|-------------|--------|-------|
-| `model` | Current model display name | stdin JSON | magenta |
-| `effort` | Effort level from Claude settings | `~/.claude/settings.json` | dim |
-| `directory` | Basename of working directory | stdin JSON / `os.Getwd` | cyan |
-| `git-branch` | Current git branch | `git symbolic-ref` | yellow |
-| `context-bar` | Context window usage bar | stdin JSON | green/yellow/red |
-| `usage-5h` | 5-hour rate limit bar with pace | stdin JSON | green/yellow/red |
-| `usage-7d` | 7-day rate limit bar with pace | stdin JSON | green/yellow/red |
-| `lines-changed` | Lines added and removed | stdin JSON | green(+) / red(-) |
-| `cost` | Session cost in USD | stdin JSON | dim |
-| `memory` | Parent process RSS memory | `ps` | dim |
-| `weather` | Current weather via wttr.in | HTTP | yellow |
-| `now-playing` | Currently playing track (macOS/Linux) | OS media API | magenta |
-| `flight` | Live flight tracking via AviationStack | HTTP | cyan |
-| `cricket` | Live cricket scores | HTTP | green |
-| `stocks` | Stock price changes (green/red) | HTTP | raw ANSI |
-| `hackernews` | Top Hacker News story | HTTP | yellow |
-| `moon` | Current moon phase | computed | dim |
-| `pomodoro` | Pomodoro work/break timer | local state file | red/green |
-| `tokens` | Input/output token counts (`↑12.4k ↓8.2k`) | stdin JSON | dim |
-| `total-tokens` | Combined token count (`20.6k tokens`) | stdin JSON | dim |
-| `session-time` | Elapsed session time (`⏱ 1h23m`) | parent process | dim |
-| `git-status` | Working tree status (`✓` or `✎ 3M 2U`) | `git status` | green/yellow |
-| `git-diff` | Staged changes count (`staged: 4 files`) | `git diff` | green |
-
-Bar-based widgets (context-bar, usage-5h, usage-7d) change color based on percentage: green (<50%), yellow (50-79%), red (80%+).
-
-## CLI commands
-
-| Command | Description |
-|---------|-------------|
-| `ccw` | Pipeline mode. Reads JSON from stdin, outputs rendered status line. Called by Claude Code automatically. |
-| `ccw init` | Creates config directory, writes default config, patches Claude Code settings. |
-| `ccw doctor` | Checks installation health: config validity, Claude Code settings, git and python3 availability. |
-| `ccw preview` | Renders a sample status line using realistic mock data. Useful for testing your config. |
-| `ccw version` | Prints version information. |
-| `ccw pomo start` | Start a Pomodoro work session (25 min default). |
-| `ccw pomo stop` | Stop the current Pomodoro timer. |
-| `ccw pomo skip` | Skip to the next phase (work to break, or break to work). |
-| `ccw pomo status` | Show the current Pomodoro timer status. |
-| `ccw track <flight>` | Show live tracking info for a flight (e.g. `ccw track UL504`). |
-| `ccw hn` | Display the top 5 Hacker News stories in your terminal. |
-| `ccw list` | Show all available widgets with enabled/disabled status and position. |
-| `ccw add <widget>` | Enable a widget. Appends to the last row by default. |
-| `ccw add <widget> -r 2 -c 4` | Enable a widget at a specific row and column position. |
-| `ccw add <widget> --rc 2:4` | Shorthand for row:col positioning. Also accepts `--rc=2:4`. |
-| `ccw remove <widget>` | Disable a widget (removes it from the config layout). |
-| `ccw config edit` | Open `config.json` in your `$EDITOR`. |
-| `ccw plugin add <repo>` | Install a plugin from a Git repository. |
-| `ccw plugin list` | List all installed plugins. |
-| `ccw plugin remove <name>` | Remove an installed plugin. |
-
-## Shortcut commands
-
-```bash
-# Pomodoro timer
-ccw pomo start          # Start a 25-minute work session
-ccw pomo skip           # Skip to break (or back to work)
-ccw pomo status         # Check remaining time
-ccw pomo stop           # Cancel the timer
-
-# Flight tracking
-ccw track UL504         # Live status for a flight
-
-# Hacker News
-ccw hn                  # Top 5 stories from HN
-```
-
-## Plugin system
-
-ccstatuswidgets supports third-party plugins that add custom widgets to your status line.
-
-### Official plugins
-
-| Plugin | Description | Install |
-|--------|-------------|---------|
-| [uptime](https://github.com/warunacds/ccw-plugin-uptime) | System uptime (`⬆ 3d 12h`) | `ccw plugin add github.com/warunacds/ccw-plugin-uptime` |
-| [battery](https://github.com/warunacds/ccw-plugin-battery) | Battery level & charging (`🔋 78%` / `⚡ 100%`) | `ccw plugin add github.com/warunacds/ccw-plugin-battery` |
-| [docker](https://github.com/warunacds/ccw-plugin-docker) | Running container count (`🐳 4 containers`) | `ccw plugin add github.com/warunacds/ccw-plugin-docker` |
-| [ip](https://github.com/warunacds/ccw-plugin-ip) | Public IP address (`🌐 203.0.113.42`) | `ccw plugin add github.com/warunacds/ccw-plugin-ip` |
-
-After installing, enable with `ccw add <name>` (e.g., `ccw add uptime`).
-
-### Managing plugins
-
-```bash
-ccw plugin add github.com/user/my-ccw-plugin
-ccw plugin list
-ccw plugin remove my-ccw-plugin
-ccw plugin update my-ccw-plugin
-```
-
-A plugin repository must contain a `plugin.json` at its root:
+<details>
+<summary><b>Weather</b></summary>
 
 ```json
-{
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "Shows my custom data",
-  "command": "python3 main.py"
-}
+"weather": { "city": "Colombo", "units": "metric" }
 ```
+- `city` — city name (default: IP geolocation)
+- `units` — `"metric"` or `"imperial"`
+</details>
 
-The plugin command is executed by the engine during each render cycle. It must print a JSON object to stdout:
+<details>
+<summary><b>Stocks</b></summary>
 
 ```json
-{"text": "my data", "color": "cyan"}
+"stocks": { "symbols": ["AAPL", "TSLA", "GOOG"] }
 ```
+- `symbols` — array of stock ticker symbols
+</details>
 
-### Python SDK
+<details>
+<summary><b>Flight</b></summary>
 
-For Python-based plugins, install the helper SDK:
-
-```bash
-pip install ccstatuswidgets
+```json
+"flight": { "api_key": "your_key", "flight": "UL504" }
 ```
+- `api_key` — AviationStack API key ([free tier](https://aviationstack.com/))
+- `flight` — IATA flight number
+</details>
 
-Example plugin using the SDK:
+<details>
+<summary><b>Cricket</b></summary>
 
-```python
-from ccstatuswidgets import widget, output
-
-@widget("my-widget")
-def run(config):
-    return output("Hello from plugin", color="cyan")
+```json
+"cricket": { "api_key": "your_key", "team": "SL" }
 ```
+- `api_key` — CricAPI key ([free tier](https://cricketdata.org/))
+- `team` — optional team filter
+</details>
 
-## Managing widgets
+<details>
+<summary><b>Pomodoro</b></summary>
+
+```json
+"pomodoro": { "work_mins": 25, "break_mins": 5 }
+```
+</details>
+
+<details>
+<summary><b>Cache TTL</b></summary>
+
+Any widget can have a custom cache TTL:
+```json
+"weather": { "city": "Colombo", "cache_ttl": "30m" }
+```
+Default: `5m`. Accepts Go duration strings (`30s`, `5m`, `2h`, `24h`).
+</details>
+
+---
+
+## 🎯 Managing Widgets
+
+No need to edit JSON — use the CLI:
 
 ```bash
 # See all available widgets and their status
@@ -232,10 +233,10 @@ ccw list
 # Enable a widget (appends to last row)
 ccw add weather
 
-# Enable a widget at a specific position (row 2, column 4)
+# Enable at a specific position (row 2, column 4)
 ccw add weather -r 2 -c 4
-ccw add weather --rc 2:4    # shorthand
-ccw add weather --rc=2:4   # also works
+ccw add weather --rc 2:4      # shorthand
+ccw add weather --rc=2:4      # also works
 
 # Disable a widget
 ccw remove weather
@@ -244,16 +245,205 @@ ccw remove weather
 ccw config edit
 ```
 
-## Useful commands
+### Example: 3-line setup
 
 ```bash
-# Test your config without starting Claude Code
-ccw preview
-
-# Diagnose setup issues
-ccw doctor
+ccw add weather --rc 2:1
+ccw add stocks --rc 3:1
+ccw add hackernews --rc 3:2
+ccw add moon --rc 3:3
 ```
 
-## License
+---
 
-MIT -- see [LICENSE](LICENSE).
+## 🖥️ CLI Commands
+
+### Core
+
+| Command | Description |
+|---------|-------------|
+| `ccw` | Pipeline mode — reads JSON from stdin, outputs status line. Called by Claude Code. |
+| `ccw init` | Creates config, patches Claude Code settings |
+| `ccw doctor` | Checks installation health |
+| `ccw preview` | Renders sample status line with mock data |
+| `ccw version` | Prints version |
+
+### Widget Management
+
+| Command | Description |
+|---------|-------------|
+| `ccw list` | Show all widgets with enabled/disabled status |
+| `ccw add <widget>` | Enable a widget |
+| `ccw add <widget> --rc 2:4` | Enable at row:col position |
+| `ccw remove <widget>` | Disable a widget |
+| `ccw config edit` | Open config in `$EDITOR` |
+
+### Shortcuts
+
+| Command | Description |
+|---------|-------------|
+| `ccw pomo start` | Start a 25-minute work session |
+| `ccw pomo stop` | Stop the timer |
+| `ccw pomo skip` | Skip to next phase (work/break) |
+| `ccw pomo status` | Show timer status |
+| `ccw track UL504` | Set flight to track |
+| `ccw track stop` | Stop tracking |
+| `ccw hn` | Top 5 Hacker News stories in terminal |
+
+---
+
+## 🔌 Plugin System
+
+Extend ccstatuswidgets with community plugins. Plugins are standalone executables that receive JSON on stdin and write JSON to stdout.
+
+### Official Plugins
+
+| Plugin | Description | Install |
+|--------|-------------|---------|
+| [uptime](https://github.com/warunacds/ccw-plugin-uptime) | System uptime (`⬆ 3d 12h`) | `ccw plugin add github.com/warunacds/ccw-plugin-uptime` |
+| [battery](https://github.com/warunacds/ccw-plugin-battery) | Battery level (`🔋 78%` / `⚡ 100%`) | `ccw plugin add github.com/warunacds/ccw-plugin-battery` |
+| [docker](https://github.com/warunacds/ccw-plugin-docker) | Running containers (`🐳 4 containers`) | `ccw plugin add github.com/warunacds/ccw-plugin-docker` |
+| [ip](https://github.com/warunacds/ccw-plugin-ip) | Public IP (`🌐 203.0.113.42`) | `ccw plugin add github.com/warunacds/ccw-plugin-ip` |
+
+After installing, enable with `ccw add <name>`.
+
+### Managing Plugins
+
+```bash
+ccw plugin add github.com/user/my-plugin    # install
+ccw plugin list                              # list installed
+ccw plugin remove my-plugin                  # uninstall
+ccw plugin update my-plugin                  # update
+ccw plugin update --all                      # update all
+```
+
+---
+
+## 🛠️ Creating Plugins
+
+A plugin is a Git repo with a `plugin.json` and an executable entry point.
+
+### Plugin Manifest
+
+```json
+{
+  "name": "my-widget",
+  "version": "1.0.0",
+  "description": "Shows something useful",
+  "entry": "widget.sh",
+  "cache_ttl": "5m",
+  "interpreter": "sh"
+}
+```
+
+### Shell Plugin Example
+
+```sh
+#!/bin/sh
+cat > /dev/null  # consume stdin
+printf '{"text": "hello world", "color": "cyan"}'
+```
+
+### Python Plugin Example
+
+Install the Python SDK:
+
+```bash
+pip install ccstatuswidgets
+```
+
+```python
+from ccstatuswidgets import widget
+
+@widget(name="my-widget")
+def render(input_data, config):
+    return {"text": "hello", "color": "green"}
+```
+
+### Plugin Protocol
+
+Plugins receive `StatusLineInput` JSON on stdin and must write a `WidgetOutput` JSON object to stdout:
+
+```json
+{"text": "display text", "color": "cyan"}
+```
+
+Supported colors: `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `dim`, `gray`
+
+---
+
+## 🏗️ Development
+
+### Prerequisites
+
+- [Go](https://go.dev) 1.21+
+- Git
+
+### Setup
+
+```bash
+git clone https://github.com/warunacds/ccstatuswidgets.git
+cd ccstatuswidgets
+go test ./...        # run tests
+go build -o ccw ./cmd/ccw   # build
+```
+
+### Project Structure
+
+```
+ccstatuswidgets/
+├── cmd/ccw/                  # Entry point, CLI routing
+├── internal/
+│   ├── protocol/             # StatusLineInput, WidgetOutput types
+│   ├── widget/               # Widget interface + registry
+│   ├── widgets/              # 23 built-in widget implementations
+│   ├── engine/               # Concurrent executor with cache fallback
+│   ├── renderer/             # ANSI color renderer
+│   ├── cache/                # File-based TTL cache
+│   ├── config/               # JSON config loader + defaults
+│   ├── httpclient/           # Shared HTTP client for API widgets
+│   ├── plugin/               # External plugin runner
+│   └── cli/                  # CLI commands (init, doctor, pomo, etc.)
+├── python-sdk/               # Python SDK for plugin authors
+├── install.sh                # Curl-based installer
+├── .goreleaser.yml           # Cross-platform release config
+└── .github/workflows/        # CI/CD — auto-release on tag
+```
+
+### Running Tests
+
+```bash
+go test ./...              # all tests
+go test ./... -race        # with race detector
+go vet ./...               # lint
+```
+
+### Releasing
+
+Push a version tag — GitHub Actions builds binaries and creates the release automatically:
+
+```bash
+git tag v0.4.0
+git push origin v0.4.0
+```
+
+---
+
+## 📄 License
+
+[MIT](LICENSE) © Waruna De Silva
+
+---
+
+<div align="center">
+
+### 🌟 Show Your Support
+
+Give a ⭐ if this project helped you!
+
+[![GitHub stars](https://img.shields.io/github/stars/warunacds/ccstatuswidgets?style=social)](https://github.com/warunacds/ccstatuswidgets/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/warunacds/ccstatuswidgets?style=social)](https://github.com/warunacds/ccstatuswidgets/network/members)
+
+[Report Bug](https://github.com/warunacds/ccstatuswidgets/issues) · [Request Feature](https://github.com/warunacds/ccstatuswidgets/issues)
+
+</div>
