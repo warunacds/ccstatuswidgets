@@ -25,6 +25,25 @@ ccw init
 
 `ccw init` creates `~/.ccstatuswidgets/config.json`, sets up cache and plugin directories, and patches Claude Code's `~/.claude/settings.json` to point the `statusLine.command` to the `ccw` binary.
 
+### Updating
+
+To update to the latest version, re-run the install script:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/warunacds/ccstatuswidgets/main/install.sh | sh
+```
+
+Your config (`~/.ccstatuswidgets/config.json`) is preserved — only the binary is replaced.
+
+If you installed from source:
+
+```bash
+cd ccstatuswidgets
+git pull
+go build -ldflags "-s -w -X github.com/warunacds/ccstatuswidgets/internal/cli.Version=$(git describe --tags)" -o ccw ./cmd/ccw
+sudo cp ccw /usr/local/bin/ccw
+```
+
 ## Configuration
 
 Config lives at `~/.ccstatuswidgets/config.json`:
