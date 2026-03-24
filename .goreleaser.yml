@@ -1,0 +1,37 @@
+version: 2
+project_name: ccstatuswidgets
+
+builds:
+  - id: ccw
+    main: ./cmd/ccw
+    binary: ccw
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/warunacds/ccstatuswidgets/internal/cli.Version={{.Version}}
+
+archives:
+  - id: ccw
+    format: binary
+    name_template: "ccw_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+release:
+  github:
+    owner: warunacds
+    name: ccstatuswidgets
