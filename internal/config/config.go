@@ -10,6 +10,8 @@ import (
 // Config holds the full ccstatuswidgets configuration.
 type Config struct {
 	TimeoutMs int                                `json:"timeout_ms"`
+	Separator string                             `json:"separator"`
+	Powerline bool                               `json:"powerline"`
 	Lines     []LineConfig                       `json:"lines"`
 	Widgets   map[string]map[string]interface{} `json:"widgets"`
 }

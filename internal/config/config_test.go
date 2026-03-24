@@ -191,6 +191,48 @@ func TestSaveAndLoad(t *testing.T) {
 	}
 }
 
+func TestDefaultSeparatorAndPowerline(t *testing.T) {
+	cfg := config.Default()
+
+	if cfg.Separator != " " {
+		t.Fatalf("expected default separator %q, got %q", " ", cfg.Separator)
+	}
+	if cfg.Powerline != false {
+		t.Fatalf("expected default powerline false, got %v", cfg.Powerline)
+	}
+}
+
+func TestCustomSeparatorAndPowerlineRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+
+	cfg := &config.Config{
+		TimeoutMs: 500,
+		Separator: " | ",
+		Powerline: true,
+		Lines: []config.LineConfig{
+			{Widgets: []string{"model", "cost"}},
+		},
+		Widgets: map[string]map[string]interface{}{},
+	}
+
+	if err := config.Save(path, cfg); err != nil {
+		t.Fatalf("save error: %v", err)
+	}
+
+	loaded, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("load error: %v", err)
+	}
+
+	if loaded.Separator != " | " {
+		t.Fatalf("expected separator %q, got %q", " | ", loaded.Separator)
+	}
+	if loaded.Powerline != true {
+		t.Fatalf("expected powerline true, got %v", loaded.Powerline)
+	}
+}
+
 func TestConfigDir(t *testing.T) {
 	dir := config.ConfigDir()
 	if dir == "" {

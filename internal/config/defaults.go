@@ -4,6 +4,8 @@ package config
 func Default() *Config {
 	return &Config{
 		TimeoutMs: 500,
+		Separator: " ",
+		Powerline: false,
 		Lines: []LineConfig{
 			{Widgets: []string{"model", "effort", "directory", "git-branch", "context-bar", "tokens", "session-time", "usage-5h", "usage-7d"}},
 			{Widgets: []string{"lines-changed", "git-status", "cost", "memory"}},
