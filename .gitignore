@@ -1,0 +1,9 @@
+# Build artifacts
+ccw
+*.test
+dist/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
