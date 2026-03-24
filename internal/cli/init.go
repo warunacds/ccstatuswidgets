@@ -10,7 +10,7 @@ import (
 )
 
 // RunInit creates the ccstatuswidgets configuration directory structure,
-// writes a default config, and patches Claude Code's settings.json.
+// writes a default config (only if none exists), and patches Claude Code's settings.json.
 func RunInit() error {
 	configDir := config.ConfigDir()
 
@@ -26,11 +26,16 @@ func RunInit() error {
 		}
 	}
 
-	// Write default config.
+	// Only write config if it doesn't exist. Preserve existing user config.
 	configPath := filepath.Join(configDir, "config.json")
-	cfg := config.Default()
-	if err := config.Save(configPath, cfg); err != nil {
-		return fmt.Errorf("failed to write config: %w", err)
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		cfg := config.Default()
+		if err := config.Save(configPath, cfg); err != nil {
+			return fmt.Errorf("failed to write config: %w", err)
+		}
+		fmt.Printf("  Created %s\n", configPath)
+	} else {
+		fmt.Printf("  Config already exists at %s (preserved)\n", configPath)
 	}
 
 	// Patch Claude Code settings.json if it exists.
@@ -39,10 +44,9 @@ func RunInit() error {
 		fmt.Fprintf(os.Stderr, "warning: could not patch Claude Code settings: %v\n", err)
 	}
 
+	fmt.Println()
 	fmt.Println("ccstatuswidgets initialized successfully!")
 	fmt.Println()
-	fmt.Println("Created:")
-	fmt.Printf("  %s\n", configPath)
 	fmt.Printf("  %s\n", filepath.Join(configDir, "cache"))
 	fmt.Printf("  %s\n", filepath.Join(configDir, "plugins"))
 	fmt.Println()
@@ -51,6 +55,38 @@ func RunInit() error {
 	fmt.Println("  2. Run 'ccw preview' to see a sample status line")
 	fmt.Println("  3. Start Claude Code — the status line should appear automatically")
 
+	return nil
+}
+
+// RunReset resets the config to defaults, overwriting the existing config.
+// Requires --confirm flag or interactive confirmation.
+func RunReset(args []string) error {
+	confirmed := false
+	for _, a := range args {
+		if a == "--confirm" || a == "-y" {
+			confirmed = true
+		}
+	}
+
+	if !confirmed {
+		fmt.Print("This will reset your config to defaults, losing all customizations. Continue? [y/N] ")
+		var response string
+		fmt.Scanln(&response)
+		if response != "y" && response != "Y" && response != "yes" {
+			fmt.Println("Reset cancelled.")
+			return nil
+		}
+	}
+
+	configDir := config.ConfigDir()
+	configPath := filepath.Join(configDir, "config.json")
+
+	cfg := config.Default()
+	if err := config.Save(configPath, cfg); err != nil {
+		return fmt.Errorf("failed to write config: %w", err)
+	}
+
+	fmt.Printf("Config reset to defaults at %s\n", configPath)
 	return nil
 }
 

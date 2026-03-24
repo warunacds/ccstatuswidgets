@@ -29,6 +29,12 @@ func main() {
 				os.Exit(1)
 			}
 			return
+		case "reset":
+			if err := cli.RunReset(os.Args[2:]); err != nil {
+				fmt.Fprintf(os.Stderr, "ccw reset: %v\n", err)
+				os.Exit(1)
+			}
+			return
 		case "doctor":
 			if err := cli.RunDoctor(); err != nil {
 				fmt.Fprintf(os.Stderr, "ccw doctor: %v\n", err)
@@ -117,7 +123,7 @@ func main() {
 func printUsage() {
 	fmt.Fprintf(os.Stderr, "Usage: ccw <command>\n\n")
 	fmt.Fprintf(os.Stderr, "Commands:\n")
-	fmt.Fprintf(os.Stderr, "  init      Initialize configuration and directories\n")
+	fmt.Fprintf(os.Stderr, "  init      Initialize configuration and directories (preserves existing config)\n")
 	fmt.Fprintf(os.Stderr, "  doctor    Check installation health\n")
 	fmt.Fprintf(os.Stderr, "  preview   Show a sample status line\n")
 	fmt.Fprintf(os.Stderr, "  version   Print version information\n")
@@ -129,6 +135,7 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  list      Show all available widgets and their status\n")
 	fmt.Fprintf(os.Stderr, "  add       Add a widget to the status line layout\n")
 	fmt.Fprintf(os.Stderr, "  remove    Remove a widget from the status line layout\n")
+	fmt.Fprintf(os.Stderr, "  reset     Reset config to defaults (with confirmation)\n")
 	fmt.Fprintf(os.Stderr, "\n")
 	fmt.Fprintf(os.Stderr, "When called without arguments, reads JSON from stdin (Claude Code pipeline mode).\n")
 }
