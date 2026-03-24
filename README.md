@@ -114,6 +114,11 @@ Bar-based widgets (context-bar, usage-5h, usage-7d) change color based on percen
 | `ccw pomo status` | Show the current Pomodoro timer status. |
 | `ccw track <flight>` | Show live tracking info for a flight (e.g. `ccw track UL504`). |
 | `ccw hn` | Display the top 5 Hacker News stories in your terminal. |
+| `ccw list` | Show all available widgets with enabled/disabled status and position. |
+| `ccw add <widget>` | Enable a widget. Appends to the last row by default. |
+| `ccw add <widget> -r 2 -c 4` | Enable a widget at a specific row and column position. |
+| `ccw remove <widget>` | Disable a widget (removes it from the config layout). |
+| `ccw config edit` | Open `config.json` in your `$EDITOR`. |
 | `ccw plugin add <repo>` | Install a plugin from a Git repository. |
 | `ccw plugin list` | List all installed plugins. |
 | `ccw plugin remove <name>` | Remove an installed plugin. |
@@ -179,6 +184,25 @@ from ccstatuswidgets import widget, output
 @widget("my-widget")
 def run(config):
     return output("Hello from plugin", color="cyan")
+```
+
+## Managing widgets
+
+```bash
+# See all available widgets and their status
+ccw list
+
+# Enable a widget (appends to last row)
+ccw add weather
+
+# Enable a widget at a specific position (row 2, column 4)
+ccw add weather -r 2 -c 4
+
+# Disable a widget
+ccw remove weather
+
+# Edit config manually
+ccw config edit
 ```
 
 ## Useful commands
