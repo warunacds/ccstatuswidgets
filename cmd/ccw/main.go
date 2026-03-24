@@ -77,6 +77,19 @@ func main() {
 				os.Exit(1)
 			}
 			return
+		case "configure":
+			registry := widget.NewRegistry()
+			widgets.RegisterAll(registry)
+			externalWidgets, _ := plugin.DiscoverPlugins(filepath.Join(config.ConfigDir(), "plugins"))
+			allNames := registry.Names()
+			for _, ew := range externalWidgets {
+				allNames = append(allNames, ew.Name())
+			}
+			if err := cli.RunConfigure(config.ConfigDir(), allNames); err != nil {
+				fmt.Fprintf(os.Stderr, "ccw configure: %v\n", err)
+				os.Exit(1)
+			}
+			return
 		case "config":
 			if len(os.Args) > 2 && os.Args[2] == "edit" {
 				if err := cli.RunConfigEdit(); err != nil {
@@ -135,6 +148,7 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  pomo      Pomodoro timer (start, stop, skip, status)\n")
 	fmt.Fprintf(os.Stderr, "  track     Track a flight number (e.g., ccw track UL504)\n")
 	fmt.Fprintf(os.Stderr, "  hn        Show top Hacker News stories\n")
+	fmt.Fprintf(os.Stderr, "  configure Interactive widget layout configurator\n")
 	fmt.Fprintf(os.Stderr, "  config    Manage configuration (edit)\n")
 	fmt.Fprintf(os.Stderr, "  list      Show all available widgets and their status\n")
 	fmt.Fprintf(os.Stderr, "  add       Add a widget to the status line layout\n")
