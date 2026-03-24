@@ -185,21 +185,35 @@ Config lives at `~/.ccstatuswidgets/config.json`:
 <details>
 <summary><b>Flight</b></summary>
 
+Uses [AviationStack](https://aviationstack.com/) for live flight data. Sign up for a free API key (500 requests/month on the free plan):
+
+1. Create an account at [aviationstack.com/signup](https://aviationstack.com/signup/free)
+2. Copy your API key from the dashboard
+3. Add to config:
+
 ```json
 "flight": { "api_key": "your_key", "flight": "UL504" }
 ```
-- `api_key` — AviationStack API key ([free tier](https://aviationstack.com/))
-- `flight` — IATA flight number
+- `api_key` — your AviationStack API key
+- `flight` — IATA flight number (e.g., `UL504`, `QF1`, `BA256`)
+
+You can also set the flight dynamically: `ccw track UL504`
 </details>
 
 <details>
 <summary><b>Cricket</b></summary>
 
+Uses [CricAPI](https://cricketdata.org/) for live cricket scores. Sign up for a free API key (100 requests/day on the free plan):
+
+1. Create an account at [cricketdata.org](https://cricketdata.org/)
+2. Copy your API key from the dashboard
+3. Add to config:
+
 ```json
 "cricket": { "api_key": "your_key", "team": "SL" }
 ```
-- `api_key` — CricAPI key ([free tier](https://cricketdata.org/))
-- `team` — optional team filter
+- `api_key` — your CricAPI key
+- `team` — optional filter to show only matches for your team (e.g., `SL`, `AUS`, `IND`)
 </details>
 
 <details>
