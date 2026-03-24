@@ -38,13 +38,14 @@ func (w *Usage7dWidget) Render(input *protocol.StatusLineInput, cfg map[string]i
 
 func renderUsage(label string, windowDuration time.Duration, rl *protocol.RateLimit, cfg map[string]interface{}) (*protocol.WidgetOutput, error) {
 	pct := rl.UsedPercentage
-	bar := BuildBar(pct, 10)
-	color := BarColor(pct)
-	resetStr := formatRelativeTime(rl.ResetsAt)
 
+	barLength := 10
 	showPercentage := true
 	showPace := true
 	if cfg != nil {
+		if bl, ok := cfg["bar_length"].(float64); ok && bl > 0 {
+			barLength = int(bl)
+		}
 		if sp, ok := cfg["show_percentage"].(bool); ok {
 			showPercentage = sp
 		}
@@ -52,6 +53,10 @@ func renderUsage(label string, windowDuration time.Duration, rl *protocol.RateLi
 			showPace = sp
 		}
 	}
+
+	bar := BuildBar(pct, barLength)
+	color := BarColor(pct)
+	resetStr := formatRelativeTime(rl.ResetsAt)
 
 	// Calculate pace: used% - elapsed%
 	elapsed := calcElapsedPercentage(rl.ResetsAt, windowDuration)
