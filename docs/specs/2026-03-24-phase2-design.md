@@ -66,18 +66,13 @@ Falls back to IP-based geolocation if no city configured. Returns nil if HTTP fa
 
 #### Now Playing (`internal/widgets/nowplaying.go`)
 
-macOS only. Uses `osascript` to query the system media player — works with Spotify, Apple Music, YouTube in browser, and any app that reports to macOS media controls.
+Cross-platform. Detects OS at runtime and uses the appropriate method:
 
-```applescript
-tell application "System Events"
-    set frontApp to name of first process whose frontmost is true
-end tell
--- Then query the active media app for track/artist
-```
+**macOS:** Uses `osascript` to query the system media player — works with Spotify, Apple Music, YouTube in browser, and any app that reports to macOS media controls. Queries known media apps in order (Spotify → Music → generic).
 
-Simpler approach: use `osascript` to read from the Now Playing notification center or query known media apps in order (Spotify → Music → generic).
+**Linux:** Uses `playerctl` (MPRIS media player CLI) — works with Spotify, VLC, Firefox, and any MPRIS-compatible player. Command: `playerctl metadata --format '{{artist}} - {{title}}'`.
 
-Returns nil on non-macOS or if nothing is playing.
+Returns nil if nothing is playing, or if the required tool is not available (`osascript` on macOS, `playerctl` on Linux).
 
 #### Flight (`internal/widgets/flight.go`)
 
