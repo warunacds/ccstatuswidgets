@@ -425,27 +425,35 @@ func (s *configureState) render() {
 	if s.dirty {
 		dirtyMarker = " *"
 	}
-	b.WriteString(fmt.Sprintf("ccstatuswidgets configurator%s\n\n", dirtyMarker))
+	b.WriteString(fmt.Sprintf("  ccstatuswidgets configurator%s\n", dirtyMarker))
+	b.WriteString("  ─────────────────────────────\n\n")
 
-	// Render rows.
+	// Render rows — each widget on its own line within the row.
 	for i, line := range s.cfg.Lines {
-		b.WriteString(fmt.Sprintf("  Row %d: ", i+1))
+		isCurrentRow := i == s.cursorRow
+		rowMarker := "  "
+		if isCurrentRow {
+			rowMarker = "▸ "
+		}
+		b.WriteString(fmt.Sprintf("%sRow %d:\n", rowMarker, i+1))
+
 		if len(line.Widgets) == 0 {
-			if i == s.cursorRow {
-				b.WriteString("\033[7m(empty)\033[0m")
+			if isCurrentRow {
+				b.WriteString("    \033[2m(empty — press 'a' to add)\033[0m\n")
 			} else {
-				b.WriteString("(empty)")
+				b.WriteString("    \033[2m(empty)\033[0m\n")
 			}
 		} else {
 			for j, w := range line.Widgets {
-				if i == s.cursorRow && j == s.cursorCol {
+				prefix := "    "
+				if isCurrentRow && j == s.cursorCol {
 					if s.moveMode {
-						b.WriteString(fmt.Sprintf("\033[7m<<%s>>\033[0m ", w))
+						b.WriteString(fmt.Sprintf("%s\033[33m▶ <<%s>>\033[0m\n", prefix, w))
 					} else {
-						b.WriteString(fmt.Sprintf("\033[7m[%s]\033[0m ", w))
+						b.WriteString(fmt.Sprintf("%s\033[36m▶ %s\033[0m\n", prefix, w))
 					}
 				} else {
-					b.WriteString(fmt.Sprintf("[%s] ", w))
+					b.WriteString(fmt.Sprintf("%s  %s\n", prefix, w))
 				}
 			}
 		}
@@ -454,42 +462,45 @@ func (s *configureState) render() {
 
 	// Available widgets.
 	available := s.availableWidgets()
-	b.WriteString("\n")
+	b.WriteString("  Available:\n")
 	if len(available) > 0 {
-		b.WriteString("  Available: ")
-		b.WriteString(strings.Join(available, ", "))
-		b.WriteString("\n")
+		// Show in columns of 3
+		for i := 0; i < len(available); i += 3 {
+			b.WriteString("    ")
+			for j := i; j < i+3 && j < len(available); j++ {
+				b.WriteString(fmt.Sprintf("%-20s", available[j]))
+			}
+			b.WriteString("\n")
+		}
 	} else {
-		b.WriteString("  Available: (none — all widgets are enabled)\n")
+		b.WriteString("    \033[2m(all widgets enabled)\033[0m\n")
 	}
 
 	// Controls.
-	b.WriteString("\n  Controls:\n")
+	b.WriteString("\n  ─────────────────────────────\n")
 	if s.moveMode {
-		b.WriteString("    ←→    move widget          m  exit move mode\n")
-		b.WriteString("    Enter confirm position\n")
+		b.WriteString("  ←→ move widget  m/Enter confirm  \n")
 	} else {
-		b.WriteString("    ↑↓    select row        a  add widget to row      n  new row\n")
-		b.WriteString("    ←→    select widget      d  delete widget          s  save & quit\n")
-		b.WriteString("    m     move widget (←→)   r  remove row (if empty)  q  quit without saving\n")
+		b.WriteString("  ↑↓ row  ←→ widget  a add  d delete  m move\n")
+		b.WriteString("  n new row  r remove row  s save  q quit\n")
 	}
 
 	// Status line.
-	b.WriteString("\n")
+	b.WriteString("  ─────────────────────────────\n")
 	if len(s.cfg.Lines) > 0 && len(s.cfg.Lines[s.cursorRow].Widgets) > 0 {
 		widgetName := s.cfg.Lines[s.cursorRow].Widgets[s.cursorCol]
 		modeLabel := ""
 		if s.moveMode {
-			modeLabel = " (MOVE MODE)"
+			modeLabel = " \033[33mMOVE\033[0m"
 		}
-		b.WriteString(fmt.Sprintf("  [Row %d, Col %d: %s]%s\n", s.cursorRow+1, s.cursorCol+1, widgetName, modeLabel))
+		b.WriteString(fmt.Sprintf("  Row %d, Col %d: \033[1m%s\033[0m%s\n", s.cursorRow+1, s.cursorCol+1, widgetName, modeLabel))
 	} else {
-		b.WriteString(fmt.Sprintf("  [Row %d, empty]\n", s.cursorRow+1))
+		b.WriteString(fmt.Sprintf("  Row %d (empty)\n", s.cursorRow+1))
 	}
 
 	// Message line.
 	if s.message != "" {
-		b.WriteString(fmt.Sprintf("\n  %s\n", s.message))
+		b.WriteString(fmt.Sprintf("\n  \033[33m%s\033[0m\n", s.message))
 		s.message = ""
 	}
 
