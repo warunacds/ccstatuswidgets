@@ -233,7 +233,12 @@ Default: `5m`. Accepts Go duration strings (`30s`, `5m`, `2h`, `24h`).
 
 ## 🎯 Managing Widgets
 
-No need to edit JSON — use the CLI:
+No need to edit JSON — use the interactive configurator or CLI commands:
+
+```bash
+# Interactive mode — visual layout editor
+ccw configure
+```
 
 ```bash
 # See all available widgets and their status
@@ -285,6 +290,7 @@ ccw add moon --rc 3:3
 | `ccw add <widget>` | Enable a widget |
 | `ccw add <widget> --rc 2:4` | Enable at row:col position |
 | `ccw remove <widget>` | Disable a widget |
+| `ccw configure` | Interactive widget layout configurator |
 | `ccw config edit` | Open config in `$EDITOR` |
 
 ### Shortcuts
