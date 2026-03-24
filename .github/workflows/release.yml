@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run tests
+        run: go test ./... -race
+
+      - name: Build binaries
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG_NAME#v}"
+          LDFLAGS="-s -w -X github.com/warunacds/ccstatuswidgets/internal/cli.Version=${VERSION}"
+          mkdir -p dist
+
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/ccw_darwin_arm64 ./cmd/ccw
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/ccw_darwin_amd64 ./cmd/ccw
+          CGO_ENABLED=0 GOOS=linux  GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/ccw_linux_arm64 ./cmd/ccw
+          CGO_ENABLED=0 GOOS=linux  GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/ccw_linux_amd64 ./cmd/ccw
+
+          cd dist && sha256sum ccw_* > checksums.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ccw_darwin_arm64
+            dist/ccw_darwin_amd64
+            dist/ccw_linux_arm64
+            dist/ccw_linux_amd64
+            dist/checksums.txt
+          generate_release_notes: true
