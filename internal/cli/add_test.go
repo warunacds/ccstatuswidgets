@@ -184,6 +184,70 @@ func TestAddWidgetCreatesNewRow(t *testing.T) {
 	}
 }
 
+func TestAddWidgetWithRCShorthand(t *testing.T) {
+	dir := t.TempDir()
+	cfg := &config.Config{
+		TimeoutMs: 500,
+		Lines: []config.LineConfig{
+			{Widgets: []string{"model", "effort"}},
+		},
+		Widgets: map[string]map[string]interface{}{},
+	}
+	writeConfig(t, dir, cfg)
+
+	registry := setupAddRegistry()
+	err := cli.RunAdd([]string{"weather", "--rc", "1:2"}, dir, registry)
+	if err != nil {
+		t.Fatalf("RunAdd returned error: %v", err)
+	}
+
+	loaded, err := config.Load(filepath.Join(dir, "config.json"))
+	if err != nil {
+		t.Fatalf("failed to reload config: %v", err)
+	}
+
+	if len(loaded.Lines[0].Widgets) != 3 {
+		t.Fatalf("expected 3 widgets in row 1, got %d", len(loaded.Lines[0].Widgets))
+	}
+	expected := []string{"model", "weather", "effort"}
+	for i, w := range expected {
+		if loaded.Lines[0].Widgets[i] != w {
+			t.Fatalf("widget %d: expected %s, got %s", i, w, loaded.Lines[0].Widgets[i])
+		}
+	}
+}
+
+func TestAddWidgetWithRCEqualsShorthand(t *testing.T) {
+	dir := t.TempDir()
+	cfg := &config.Config{
+		TimeoutMs: 500,
+		Lines: []config.LineConfig{
+			{Widgets: []string{"model"}},
+			{Widgets: []string{"effort"}},
+		},
+		Widgets: map[string]map[string]interface{}{},
+	}
+	writeConfig(t, dir, cfg)
+
+	registry := setupAddRegistry()
+	err := cli.RunAdd([]string{"weather", "--rc=2:1"}, dir, registry)
+	if err != nil {
+		t.Fatalf("RunAdd returned error: %v", err)
+	}
+
+	loaded, err := config.Load(filepath.Join(dir, "config.json"))
+	if err != nil {
+		t.Fatalf("failed to reload config: %v", err)
+	}
+
+	if len(loaded.Lines[1].Widgets) != 2 {
+		t.Fatalf("expected 2 widgets in row 2, got %d", len(loaded.Lines[1].Widgets))
+	}
+	if loaded.Lines[1].Widgets[0] != "weather" {
+		t.Fatalf("expected first widget to be 'weather', got %s", loaded.Lines[1].Widgets[0])
+	}
+}
+
 func TestAddWidgetNoArgs(t *testing.T) {
 	dir := t.TempDir()
 
