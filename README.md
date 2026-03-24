@@ -178,17 +178,21 @@ Config lives at `~/.ccstatuswidgets/config.json`:
 <details>
 <summary><b>Flight</b></summary>
 
-Uses [AviationStack](https://aviationstack.com/) for live flight data. Sign up for a free API key (500 requests/month on the free plan):
+Supports two providers — choose one:
 
-1. Create an account at [aviationstack.com/signup](https://aviationstack.com/signup/free)
-2. Copy your API key from the dashboard
-3. Add to config:
-
+**Option 1: AviationStack** (default) — [aviationstack.com](https://aviationstack.com/), 500 requests/month free
 ```json
 "flight": { "api_key": "your_key", "flight": "UL504" }
 ```
-- `api_key` — your AviationStack API key
+
+**Option 2: AeroDataBox** via RapidAPI — [rapidapi.com/aedbx](https://rapidapi.com/aedbx-aedbx/api/aerodatabox), more generous free tier
+```json
+"flight": { "api_key": "your_rapidapi_key", "flight": "UL504", "provider": "aerodatabox" }
+```
+
+- `api_key` — API key for your chosen provider
 - `flight` — IATA flight number (e.g., `UL504`, `QF1`, `BA256`)
+- `provider` — `"aviationstack"` (default) or `"aerodatabox"`
 
 You can also set the flight dynamically: `ccw track UL504`
 </details>

@@ -208,24 +208,24 @@ func TestBuildFlightBar(t *testing.T) {
 }
 
 func TestFlightProgress_Statuses(t *testing.T) {
-	landed := aviationFlight{FlightStatus: "landed"}
+	landed := aviationStackFlight{FlightStatus: "landed"}
 	if p := flightProgressAt(landed, time.Now()); p != 1.0 {
 		t.Errorf("landed should be 1.0, got %f", p)
 	}
 
-	scheduled := aviationFlight{FlightStatus: "scheduled"}
+	scheduled := aviationStackFlight{FlightStatus: "scheduled"}
 	if p := flightProgressAt(scheduled, time.Now()); p != 0.0 {
 		t.Errorf("scheduled should be 0.0, got %f", p)
 	}
 }
 
 func TestFlightProgress_Active(t *testing.T) {
-	f := aviationFlight{
+	f := aviationStackFlight{
 		FlightStatus: "active",
-		Departure: aviationAirport{
+		Departure: aviationStackAirport{
 			Actual: "2026-03-24T10:00:00+00:00",
 		},
-		Arrival: aviationAirport{
+		Arrival: aviationStackAirport{
 			Estimated: "2026-03-24T20:00:00+00:00",
 		},
 	}
@@ -273,6 +273,71 @@ func TestFlightWidget_RichOutputWithProgressBar(t *testing.T) {
 	}
 	if !strings.Contains(out.Text, "✈") {
 		t.Errorf("expected plane in progress bar, got %q", out.Text)
+	}
+}
+
+func TestFlightWidget_AeroDataBoxProvider(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify RapidAPI headers
+		if r.Header.Get("X-RapidAPI-Key") == "" {
+			w.WriteHeader(401)
+			return
+		}
+		fmt.Fprint(w, `[{
+			"status": "Airborne",
+			"departure": {
+				"airport": {"iata": "SIN"},
+				"actualTime": "2026-03-24T14:00:00+00:00",
+				"terminal": "3",
+				"gate": "A1"
+			},
+			"arrival": {
+				"airport": {"iata": "JNB"},
+				"estimatedTime": "2026-03-24T18:29:00+00:00"
+			}
+		}]`)
+	}))
+	defer srv.Close()
+
+	w := &FlightWidget{}
+	cfg := map[string]interface{}{
+		"api_key":  "test_rapid_key",
+		"flight":   "SQ478",
+		"provider": "aerodatabox",
+		"base_url": srv.URL,
+	}
+
+	out, err := w.Render(&protocol.StatusLineInput{}, cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out == nil {
+		t.Fatal("expected non-nil output")
+	}
+	if !strings.Contains(out.Text, "SIN") || !strings.Contains(out.Text, "JNB") {
+		t.Errorf("expected airports in output, got %q", out.Text)
+	}
+	if !strings.Contains(out.Text, "14:00→18:29") {
+		t.Errorf("expected times in output, got %q", out.Text)
+	}
+}
+
+func TestMapAeroStatus(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{"Airborne", "active"},
+		{"En Route", "active"},
+		{"Landed", "landed"},
+		{"Arrived", "landed"},
+		{"Cancelled", "cancelled"},
+		{"Scheduled", "scheduled"},
+		{"Expected", "scheduled"},
+		{"Unknown", "unknown"},
+	}
+	for _, tc := range tests {
+		got := mapAeroStatus(tc.input)
+		if got != tc.expected {
+			t.Errorf("mapAeroStatus(%q) = %q, want %q", tc.input, got, tc.expected)
+		}
 	}
 }
 

@@ -42,3 +42,27 @@ func (c *Client) Get(url string) ([]byte, error) {
 
 	return io.ReadAll(resp.Body)
 }
+
+// GetWithHeaders fetches the given URL with custom headers and returns the response body bytes.
+func (c *Client) GetWithHeaders(url string, headers map[string]string) ([]byte, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", c.userAgent)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
+}
