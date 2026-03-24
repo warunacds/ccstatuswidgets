@@ -99,6 +99,10 @@ func main() {
 		case "add":
 			registry := widget.NewRegistry()
 			widgets.RegisterAll(registry)
+			externalWidgets, _ := plugin.DiscoverPlugins(filepath.Join(config.ConfigDir(), "plugins"))
+			for _, ew := range externalWidgets {
+				registry.Register(ew)
+			}
 			if err := cli.RunAdd(os.Args[2:], config.ConfigDir(), registry); err != nil {
 				fmt.Fprintf(os.Stderr, "ccw add: %v\n", err)
 				os.Exit(1)
