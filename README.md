@@ -1,19 +1,12 @@
 <div align="center">
 
-<pre>
-                 _        _                  _     _            _
-  ___ ___ ___ __| |_ __ _| |_ _   _ _____  (_) __| | __ _  ___| |_ ___
- / __/ __/ __/ _` | __/ _` | __| | | / __\ \ /\ / / / _` |/ _` | __/ __|
-| (_| (__\__ \ (_| | || (_| | |_| |_| \__ \\ V  V /| | (_| | (_| | |_\__ \
- \___\___|___/\__,_|\__\__,_|\__|\__,_|___/ \_/\_/ |_|\__,_|\__, |\__|___/
-                                                             |___/
-</pre>
+# ⚡ ccstatuswidgets
 
-# ccstatuswidgets
+### A customizable, plugin-ready status line for Claude Code CLI
 
-**A customizable, plugin-ready status line for Claude Code CLI**
+`model` · `tokens` · `git` · `weather` · `stocks` · `cricket` · `flights` · `pomodoro` · `and more`
 
-*23 built-in widgets, external plugin system, and CLI tools — all in a single Go binary*
+**23 built-in widgets** · **plugin system** · **single Go binary**
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/warunacds/ccstatuswidgets/blob/main/LICENSE)
