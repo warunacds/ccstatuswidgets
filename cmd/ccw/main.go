@@ -12,6 +12,7 @@ import (
 	"github.com/warunacds/ccstatuswidgets/internal/cli"
 	"github.com/warunacds/ccstatuswidgets/internal/config"
 	"github.com/warunacds/ccstatuswidgets/internal/engine"
+	"github.com/warunacds/ccstatuswidgets/internal/plugin"
 	"github.com/warunacds/ccstatuswidgets/internal/protocol"
 	"github.com/warunacds/ccstatuswidgets/internal/renderer"
 	"github.com/warunacds/ccstatuswidgets/internal/widget"
@@ -43,6 +44,33 @@ func main() {
 		case "version":
 			cli.RunVersion()
 			return
+		case "plugin":
+			pluginsDir := filepath.Join(config.ConfigDir(), "plugins")
+			registry := widget.NewRegistry()
+			widgets.RegisterAll(registry)
+			if err := cli.RunPlugin(os.Args[2:], pluginsDir, registry.Names()); err != nil {
+				fmt.Fprintf(os.Stderr, "ccw plugin: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "pomo":
+			if err := cli.RunPomo(os.Args[2:], config.ConfigDir()); err != nil {
+				fmt.Fprintf(os.Stderr, "ccw pomo: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "track":
+			if err := cli.RunTrack(os.Args[2:], config.ConfigDir()); err != nil {
+				fmt.Fprintf(os.Stderr, "ccw track: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "hn":
+			if err := cli.RunHN(""); err != nil {
+				fmt.Fprintf(os.Stderr, "ccw hn: %v\n", err)
+				os.Exit(1)
+			}
+			return
 		default:
 			printUsage()
 			os.Exit(1)
@@ -60,6 +88,10 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  doctor    Check installation health\n")
 	fmt.Fprintf(os.Stderr, "  preview   Show a sample status line\n")
 	fmt.Fprintf(os.Stderr, "  version   Print version information\n")
+	fmt.Fprintf(os.Stderr, "  plugin    Manage external plugins (add, list, remove, update)\n")
+	fmt.Fprintf(os.Stderr, "  pomo      Pomodoro timer (start, stop, skip, status)\n")
+	fmt.Fprintf(os.Stderr, "  track     Track a flight number (e.g., ccw track UL504)\n")
+	fmt.Fprintf(os.Stderr, "  hn        Show top Hacker News stories\n")
 	fmt.Fprintf(os.Stderr, "\n")
 	fmt.Fprintf(os.Stderr, "When called without arguments, reads JSON from stdin (Claude Code pipeline mode).\n")
 }
@@ -100,6 +132,12 @@ func runPipeline() {
 	// Create widget registry and register all built-in widgets.
 	registry := widget.NewRegistry()
 	widgets.RegisterAll(registry)
+
+	// Discover and register external plugins.
+	externalWidgets, _ := plugin.DiscoverPlugins(filepath.Join(configDir, "plugins"))
+	for _, ew := range externalWidgets {
+		registry.Register(ew)
+	}
 
 	// Create file-based cache for widget fallback.
 	cacheDir := filepath.Join(configDir, "cache")
