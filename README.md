@@ -117,6 +117,7 @@ Bar-based widgets (context-bar, usage-5h, usage-7d) change color based on percen
 | `ccw list` | Show all available widgets with enabled/disabled status and position. |
 | `ccw add <widget>` | Enable a widget. Appends to the last row by default. |
 | `ccw add <widget> -r 2 -c 4` | Enable a widget at a specific row and column position. |
+| `ccw add <widget> --rc 2:4` | Shorthand for row:col positioning. |
 | `ccw remove <widget>` | Disable a widget (removes it from the config layout). |
 | `ccw config edit` | Open `config.json` in your `$EDITOR`. |
 | `ccw plugin add <repo>` | Install a plugin from a Git repository. |
@@ -197,6 +198,7 @@ ccw add weather
 
 # Enable a widget at a specific position (row 2, column 4)
 ccw add weather -r 2 -c 4
+ccw add weather --rc 2:4    # shorthand
 
 # Disable a widget
 ccw remove weather
