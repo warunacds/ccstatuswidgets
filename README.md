@@ -96,6 +96,11 @@ Widgets that require an API key (`cricket`, `flight`) will silently return nothi
 | `hackernews` | Top Hacker News story | HTTP | yellow |
 | `moon` | Current moon phase | computed | dim |
 | `pomodoro` | Pomodoro work/break timer | local state file | red/green |
+| `tokens` | Input/output token counts (`↑12.4k ↓8.2k`) | stdin JSON | dim |
+| `total-tokens` | Combined token count (`20.6k tokens`) | stdin JSON | dim |
+| `session-time` | Elapsed session time (`⏱ 1h23m`) | parent process | dim |
+| `git-status` | Working tree status (`✓` or `✎ 3M 2U`) | `git status` | green/yellow |
+| `git-diff` | Staged changes count (`staged: 4 files`) | `git diff` | green |
 
 Bar-based widgets (context-bar, usage-5h, usage-7d) change color based on percentage: green (<50%), yellow (50-79%), red (80%+).
 
