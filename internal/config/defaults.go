@@ -5,8 +5,8 @@ func Default() *Config {
 	return &Config{
 		TimeoutMs: 500,
 		Lines: []LineConfig{
-			{Widgets: []string{"model", "effort", "directory", "git-branch", "context-bar", "usage-5h", "usage-7d"}},
-			{Widgets: []string{"lines-changed", "cost", "memory"}},
+			{Widgets: []string{"model", "effort", "directory", "git-branch", "context-bar", "tokens", "session-time", "usage-5h", "usage-7d"}},
+			{Widgets: []string{"lines-changed", "git-status", "cost", "memory"}},
 		},
 		Widgets: map[string]map[string]interface{}{
 			"context-bar": {

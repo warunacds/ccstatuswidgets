@@ -52,8 +52,8 @@ Config lives at `~/.ccstatuswidgets/config.json`:
 {
   "timeout_ms": 500,
   "lines": [
-    { "widgets": ["model", "effort", "directory", "git-branch", "context-bar", "usage-5h", "usage-7d"] },
-    { "widgets": ["lines-changed", "cost", "memory"] }
+    { "widgets": ["model", "effort", "directory", "git-branch", "context-bar", "tokens", "session-time", "usage-5h", "usage-7d"] },
+    { "widgets": ["lines-changed", "git-status", "cost", "memory"] }
   ],
   "widgets": {
     "context-bar": { "bar_length": 10, "show_percentage": true },

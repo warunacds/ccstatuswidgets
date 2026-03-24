@@ -91,7 +91,7 @@ func TestDefaultConfigHasExpectedWidgets(t *testing.T) {
 	}
 
 	// Line 1 widgets
-	expectedLine1 := []string{"model", "effort", "directory", "git-branch", "context-bar", "usage-5h", "usage-7d"}
+	expectedLine1 := []string{"model", "effort", "directory", "git-branch", "context-bar", "tokens", "session-time", "usage-5h", "usage-7d"}
 	if len(cfg.Lines[0].Widgets) != len(expectedLine1) {
 		t.Fatalf("line 1: expected %d widgets, got %d", len(expectedLine1), len(cfg.Lines[0].Widgets))
 	}
@@ -102,7 +102,7 @@ func TestDefaultConfigHasExpectedWidgets(t *testing.T) {
 	}
 
 	// Line 2 widgets
-	expectedLine2 := []string{"lines-changed", "cost", "memory"}
+	expectedLine2 := []string{"lines-changed", "git-status", "cost", "memory"}
 	if len(cfg.Lines[1].Widgets) != len(expectedLine2) {
 		t.Fatalf("line 2: expected %d widgets, got %d", len(expectedLine2), len(cfg.Lines[1].Widgets))
 	}
