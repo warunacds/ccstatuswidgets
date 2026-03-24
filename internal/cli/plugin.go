@@ -57,6 +57,11 @@ func RunPlugin(args []string, pluginsDir string, builtinNames []string) error {
 }
 
 func pluginAdd(url string, pluginsDir string, builtinNames []string) error {
+	// Prepend https:// if no scheme is present and it's not a local path.
+	if !strings.Contains(url, "://") && !strings.HasPrefix(url, "/") {
+		url = "https://" + url
+	}
+
 	// Derive repo name from URL.
 	repoName := filepath.Base(url)
 	repoName = strings.TrimSuffix(repoName, ".git")

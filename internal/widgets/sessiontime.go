@@ -43,6 +43,9 @@ func (w *SessionTimeWidget) Render(input *protocol.StatusLineInput, cfg map[stri
 	}
 
 	elapsed := time.Since(startTime)
+	if elapsed < 0 {
+		return nil, nil
+	}
 	totalMinutes := int(elapsed.Minutes())
 	hours := totalMinutes / 60
 	minutes := totalMinutes % 60
@@ -76,10 +79,12 @@ func getProcessStartTime(pid int) (time.Time, error) {
 	}
 
 	// macOS/Linux ps lstart format: "Mon Jan  2 15:04:05 2006"
-	t, err := time.Parse("Mon Jan  2 15:04:05 2006", lstart)
+	// Use ParseInLocation to parse in local timezone (ps outputs local time).
+	loc := time.Now().Location()
+	t, err := time.ParseInLocation("Mon Jan  2 15:04:05 2006", lstart, loc)
 	if err != nil {
 		// Try single-digit day without extra space.
-		t, err = time.Parse("Mon Jan 2 15:04:05 2006", lstart)
+		t, err = time.ParseInLocation("Mon Jan 2 15:04:05 2006", lstart, loc)
 		if err != nil {
 			return time.Time{}, err
 		}
