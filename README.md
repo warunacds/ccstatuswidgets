@@ -316,7 +316,13 @@ Extend ccstatuswidgets with community plugins. Plugins are standalone executable
 | [docker](https://github.com/warunacds/ccw-plugin-docker) | Running containers (`🐳 4 containers`) | `ccw plugin add github.com/warunacds/ccw-plugin-docker` |
 | [ip](https://github.com/warunacds/ccw-plugin-ip) | Public IP (`🌐 203.0.113.42`) | `ccw plugin add github.com/warunacds/ccw-plugin-ip` |
 
-After installing, enable with `ccw add <name>`.
+After installing, enable with `ccw add <name>`:
+
+```bash
+ccw plugin add github.com/warunacds/ccw-plugin-battery
+ccw add battery                    # enable on the status line
+ccw add battery --rc 2:5           # or at a specific position
+```
 
 ### Managing Plugins
 
