@@ -9,6 +9,7 @@ func RegisterAll(r *widget.Registry) {
 	r.Register(&EffortWidget{})
 	r.Register(&DirectoryWidget{})
 	r.Register(&GitBranchWidget{})
+	r.Register(&GitStatusWidget{})
 	r.Register(&ContextBarWidget{})
 	r.Register(&Usage5hWidget{})
 	r.Register(&Usage7dWidget{})
