@@ -14,4 +14,6 @@ func RegisterAll(r *widget.Registry) {
 	r.Register(&LinesWidget{})
 	r.Register(&CostWidget{})
 	r.Register(&MemoryWidget{})
+	r.Register(&MoonWidget{})
+	r.Register(&NowPlayingWidget{})
 }
