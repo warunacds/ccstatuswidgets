@@ -400,12 +400,11 @@ Supported colors: `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, 
 ## 🗺️ Roadmap
 
 ### Phase 3 (next)
-- **🎨 Themes** — built-in themes (dark, light, solarized, dracula, nord) with `ccw theme` selector
-- **🌈 Custom Colors** — per-widget foreground/background colors via config (`"color": "#ff6b6b"`, hex + 256-color support)
-- **⚡ Powerline Mode** — arrow separators between widgets with Nerd Font support
-- **🔤 Custom Separators** — configurable widget separators (pipes, dots, arrows, custom Unicode)
-- **🖼️ Widget Formatting** — padding, bold, italic, background colors per widget
-- **📐 Alignment** — left/center/right alignment with flex separators
+- **🌈 Custom Colors** — per-widget foreground/background colors (`"fg": "#ff6b6b"`, hex + 256-color + named)
+- **🔤 Text Formatting** — bold, dim, italic, underline per widget
+- **⚡ Powerline Mode** — arrow separators with Nerd Font support
+- **🔸 Custom Separators** — configurable widget separators (pipes, dots, arrows, custom Unicode)
+- **🎨 Interactive Color Picker** — pick colors visually in `ccw configure`
 
 ### Future
 - Windows support
