@@ -71,6 +71,39 @@ func main() {
 				os.Exit(1)
 			}
 			return
+		case "config":
+			if len(os.Args) > 2 && os.Args[2] == "edit" {
+				if err := cli.RunConfigEdit(); err != nil {
+					fmt.Fprintf(os.Stderr, "ccw config edit: %v\n", err)
+					os.Exit(1)
+				}
+			} else {
+				fmt.Fprintf(os.Stderr, "Usage: ccw config edit\n")
+				os.Exit(1)
+			}
+			return
+		case "list":
+			registry := widget.NewRegistry()
+			widgets.RegisterAll(registry)
+			if err := cli.RunList(config.ConfigDir(), registry, filepath.Join(config.ConfigDir(), "plugins")); err != nil {
+				fmt.Fprintf(os.Stderr, "ccw list: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "add":
+			registry := widget.NewRegistry()
+			widgets.RegisterAll(registry)
+			if err := cli.RunAdd(os.Args[2:], config.ConfigDir(), registry); err != nil {
+				fmt.Fprintf(os.Stderr, "ccw add: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "remove":
+			if err := cli.RunRemove(os.Args[2:], config.ConfigDir()); err != nil {
+				fmt.Fprintf(os.Stderr, "ccw remove: %v\n", err)
+				os.Exit(1)
+			}
+			return
 		default:
 			printUsage()
 			os.Exit(1)
@@ -92,6 +125,10 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  pomo      Pomodoro timer (start, stop, skip, status)\n")
 	fmt.Fprintf(os.Stderr, "  track     Track a flight number (e.g., ccw track UL504)\n")
 	fmt.Fprintf(os.Stderr, "  hn        Show top Hacker News stories\n")
+	fmt.Fprintf(os.Stderr, "  config    Manage configuration (edit)\n")
+	fmt.Fprintf(os.Stderr, "  list      Show all available widgets and their status\n")
+	fmt.Fprintf(os.Stderr, "  add       Add a widget to the status line layout\n")
+	fmt.Fprintf(os.Stderr, "  remove    Remove a widget from the status line layout\n")
 	fmt.Fprintf(os.Stderr, "\n")
 	fmt.Fprintf(os.Stderr, "When called without arguments, reads JSON from stdin (Claude Code pipeline mode).\n")
 }
