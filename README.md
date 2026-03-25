@@ -154,6 +154,40 @@ Config lives at `~/.ccstatuswidgets/config.json`:
 | `lines` | Array of line configs. Each line lists widget names in display order |
 | `widgets` | Per-widget settings. Keys match widget names |
 
+### Styling
+
+Customize colors and formatting per widget:
+
+```json
+{
+  "separator": " │ ",
+  "powerline": false,
+  "widgets": {
+    "model": { "fg": "#ff79c6", "bg": "#282a36", "bold": true },
+    "directory": { "fg": "#8be9fd", "italic": true },
+    "git-branch": { "fg": "#50fa7b" },
+    "cost": { "fg": "196" }
+  }
+}
+```
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `fg` | Foreground color | `"red"`, `"196"`, `"#ff6b6b"` |
+| `bg` | Background color | `"blue"`, `"#282a36"` |
+| `bold` | Bold text | `true` |
+| `dim` | Dim/faint text | `true` |
+| `italic` | Italic text | `true` |
+| `underline` | Underline text | `true` |
+| `separator` | Widget separator (top-level) | `" │ "`, `" · "`, `" "` |
+| `powerline` | Powerline arrow mode (top-level) | `true` — requires Nerd Font |
+
+**Color formats:** named (`red`, `green`, etc.), 256-color (`196`), or hex truecolor (`#ff6b6b`)
+
+**Powerline mode:** When enabled, widgets render with background colors and arrow separators (``). Install a [Nerd Font](https://www.nerdfonts.com/) for best results.
+
+Use `ccw configure` to set colors interactively — press `c` for foreground, `B` for background, `f` for formatting, `/` for separator, `p` for powerline toggle.
+
 ### Widget-specific config
 
 <details>
