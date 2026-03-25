@@ -28,7 +28,7 @@
 - [Managing Widgets](#-managing-widgets)
 - [CLI Commands](#-cli-commands)
 - [Plugin System](#-plugin-system)
-- [Creating Plugins](#-creating-plugins)
+- [Creating Plugins](#-creating-plugins) ([full guide](PLUGINS.md))
 - [Development](#-development)
 - [License](#-license)
 
