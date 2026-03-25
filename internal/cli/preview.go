@@ -64,7 +64,7 @@ func RunPreview() error {
 	results := eng.Run(input, cfg)
 
 	// Render and print output.
-	output := renderer.Render(results)
+	output := renderer.Render(results, cfg)
 
 	fmt.Println("ccstatuswidgets preview:")
 	fmt.Println()
