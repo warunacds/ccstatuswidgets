@@ -380,6 +380,8 @@ ccw plugin update --all                      # update all
 
 ## 🛠️ Creating Plugins
 
+> **📖 Full guide:** See [PLUGINS.md](PLUGINS.md) for the complete plugin development guide — protocol details, examples in 4 languages, testing, publishing, and troubleshooting.
+
 A plugin is a Git repo with a `plugin.json` and an executable entry point.
 
 ### Plugin Manifest
@@ -433,17 +435,16 @@ Supported colors: `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, 
 
 ## 🗺️ Roadmap
 
-### Phase 3 (next)
-- **🌈 Custom Colors** — per-widget foreground/background colors (`"fg": "#ff6b6b"`, hex + 256-color + named)
-- **🔤 Text Formatting** — bold, dim, italic, underline per widget
-- **⚡ Powerline Mode** — arrow separators with Nerd Font support
-- **🔸 Custom Separators** — configurable widget separators (pipes, dots, arrows, custom Unicode)
-- **🎨 Interactive Color Picker** — pick colors visually in `ccw configure`
+### Completed
+- **Phase 1** — Core engine, 10 built-in widgets, renderer, cache, config system
+- **Phase 2** — 13 more widgets (weather, stocks, flight, cricket, HN, moon, pomodoro, tokens, session-time, git-status, git-diff, now-playing, total-tokens), plugin system, Python SDK, CLI management
+- **Phase 3** — Per-widget colors (hex, 256, named), text formatting (bold/dim/italic/underline), custom separators, Powerline mode, interactive color picker in `ccw configure`
 
-### Future
+### Up Next
 - Windows support
 - Homebrew tap (`brew install ccstatuswidgets`)
 - Plugin registry (searchable catalog)
+- Built-in themes (dracula, nord, solarized)
 - More community plugins
 
 ---
