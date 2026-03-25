@@ -1,6 +1,7 @@
 package renderer
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/warunacds/ccstatuswidgets/internal/config"
@@ -327,6 +328,200 @@ func TestRawANSIPassedThroughWithNoCustomStyle(t *testing.T) {
 	got := Render(results, cfg)
 	if got != raw {
 		t.Errorf("got %q, want %q", got, raw)
+	}
+}
+
+// --- Powerline mode tests ---
+
+func TestPowerlineContainsArrowSeparator(t *testing.T) {
+	cfg := &config.Config{
+		Powerline: true,
+		Widgets:   map[string]map[string]interface{}{},
+	}
+	results := [][]WidgetResult{
+		{
+			{Output: &protocol.WidgetOutput{Text: "model"}, Name: "model"},
+			{Output: &protocol.WidgetOutput{Text: "effort"}, Name: "effort"},
+		},
+	}
+	got := Render(results, cfg)
+	if !strings.Contains(got, PowerlineArrow) {
+		t.Errorf("powerline output should contain arrow separator %q, got %q", PowerlineArrow, got)
+	}
+}
+
+func TestPowerlineAssignsPaletteColorsWhenNoBg(t *testing.T) {
+	cfg := &config.Config{
+		Powerline: true,
+		Widgets:   map[string]map[string]interface{}{},
+	}
+	results := [][]WidgetResult{
+		{
+			{Output: &protocol.WidgetOutput{Text: "a"}, Name: "w1"},
+			{Output: &protocol.WidgetOutput{Text: "b"}, Name: "w2"},
+		},
+	}
+	got := Render(results, cfg)
+	// First widget should use palette[0] (#44475a) as bg.
+	bg0 := BgCode(powerlinePalette[0])
+	if !strings.Contains(got, bg0) {
+		t.Errorf("expected palette bg code %q in output %q", bg0, got)
+	}
+	// Second widget should use palette[1] (#6272a4) as bg.
+	bg1 := BgCode(powerlinePalette[1])
+	if !strings.Contains(got, bg1) {
+		t.Errorf("expected palette bg code %q in output %q", bg1, got)
+	}
+}
+
+func TestPowerlineUsesCustomBgWhenSet(t *testing.T) {
+	cfg := &config.Config{
+		Powerline: true,
+		Widgets: map[string]map[string]interface{}{
+			"status": {"bg": "#ff0000"},
+		},
+	}
+	results := [][]WidgetResult{
+		{
+			{Output: &protocol.WidgetOutput{Text: "ok"}, Name: "status"},
+		},
+	}
+	got := Render(results, cfg)
+	customBg := BgCode("#ff0000")
+	if !strings.Contains(got, customBg) {
+		t.Errorf("expected custom bg code %q in output %q", customBg, got)
+	}
+	// Should NOT contain default palette[0] bg.
+	paletteBg := BgCode(powerlinePalette[0])
+	if strings.Contains(got, paletteBg) {
+		t.Errorf("should not contain default palette bg %q when custom bg is set, got %q", paletteBg, got)
+	}
+}
+
+func TestPowerlineDisabledNoArrows(t *testing.T) {
+	cfg := &config.Config{
+		Powerline: false,
+		Widgets:   map[string]map[string]interface{}{},
+	}
+	results := [][]WidgetResult{
+		{
+			{Output: &protocol.WidgetOutput{Text: "a"}, Name: "w1"},
+			{Output: &protocol.WidgetOutput{Text: "b"}, Name: "w2"},
+		},
+	}
+	got := Render(results, cfg)
+	if strings.Contains(got, PowerlineArrow) {
+		t.Errorf("powerline disabled: output should not contain arrow %q, got %q", PowerlineArrow, got)
+	}
+}
+
+func TestPowerlineSingleWidgetClosingArrow(t *testing.T) {
+	cfg := &config.Config{
+		Powerline: true,
+		Widgets:   map[string]map[string]interface{}{},
+	}
+	results := [][]WidgetResult{
+		{
+			{Output: &protocol.WidgetOutput{Text: "solo"}, Name: "only"},
+		},
+	}
+	got := Render(results, cfg)
+	// Should contain exactly one arrow (the closing arrow).
+	count := strings.Count(got, PowerlineArrow)
+	if count != 1 {
+		t.Errorf("single widget should have exactly 1 closing arrow, got %d in %q", count, got)
+	}
+	// The closing arrow should use fg = widget's bg (palette[0]), no bg.
+	closingFg := FgCode(powerlinePalette[0])
+	// The closing arrow segment should have the fg code.
+	if !strings.Contains(got, closingFg) {
+		t.Errorf("closing arrow should use fg code %q, got %q", closingFg, got)
+	}
+}
+
+func TestPowerlineMultipleWidgetsArrowCount(t *testing.T) {
+	cfg := &config.Config{
+		Powerline: true,
+		Widgets:   map[string]map[string]interface{}{},
+	}
+	results := [][]WidgetResult{
+		{
+			{Output: &protocol.WidgetOutput{Text: "a"}, Name: "w1"},
+			{Output: &protocol.WidgetOutput{Text: "b"}, Name: "w2"},
+			{Output: &protocol.WidgetOutput{Text: "c"}, Name: "w3"},
+		},
+	}
+	got := Render(results, cfg)
+	// 3 widgets => 2 inter-widget arrows + 1 closing arrow = 3 arrows total.
+	count := strings.Count(got, PowerlineArrow)
+	if count != 3 {
+		t.Errorf("3 widgets should produce 3 arrows, got %d in %q", count, got)
+	}
+}
+
+func TestPowerlineSkipsNilWidgets(t *testing.T) {
+	cfg := &config.Config{
+		Powerline: true,
+		Widgets:   map[string]map[string]interface{}{},
+	}
+	results := [][]WidgetResult{
+		{
+			{Output: &protocol.WidgetOutput{Text: "a"}, Name: "w1"},
+			{Output: nil, Name: "w2"},
+			{Output: &protocol.WidgetOutput{Text: "c"}, Name: "w3"},
+		},
+	}
+	got := Render(results, cfg)
+	// Only 2 active widgets => 1 inter-widget arrow + 1 closing arrow = 2 arrows.
+	count := strings.Count(got, PowerlineArrow)
+	if count != 2 {
+		t.Errorf("2 active widgets should produce 2 arrows, got %d in %q", count, got)
+	}
+}
+
+func TestPowerlineEmptyLineSkipped(t *testing.T) {
+	cfg := &config.Config{
+		Powerline: true,
+		Widgets:   map[string]map[string]interface{}{},
+	}
+	results := [][]WidgetResult{
+		{
+			{Output: &protocol.WidgetOutput{Text: "top"}, Name: "w1"},
+		},
+		{
+			{Output: nil, Name: "empty"},
+		},
+		{
+			{Output: &protocol.WidgetOutput{Text: "bottom"}, Name: "w2"},
+		},
+	}
+	got := Render(results, cfg)
+	// Lines should be separated by \n, empty line skipped.
+	lines := strings.Split(got, "\n")
+	if len(lines) != 2 {
+		t.Errorf("expected 2 rendered lines, got %d: %q", len(lines), got)
+	}
+}
+
+func TestPowerlineArrowTransitionColors(t *testing.T) {
+	cfg := &config.Config{
+		Powerline: true,
+		Widgets:   map[string]map[string]interface{}{},
+	}
+	results := [][]WidgetResult{
+		{
+			{Output: &protocol.WidgetOutput{Text: "a"}, Name: "w1"},
+			{Output: &protocol.WidgetOutput{Text: "b"}, Name: "w2"},
+		},
+	}
+	got := Render(results, cfg)
+	// The arrow between w1 and w2 should have:
+	// fg = palette[0] (w1's bg), bg = palette[1] (w2's bg).
+	arrowFg := FgCode(powerlinePalette[0])
+	arrowBg := BgCode(powerlinePalette[1])
+	expectedArrowPrefix := "\033[" + arrowFg + ";" + arrowBg + "m"
+	if !strings.Contains(got, expectedArrowPrefix) {
+		t.Errorf("expected arrow transition %q in output %q", expectedArrowPrefix, got)
 	}
 }
 
