@@ -486,7 +486,7 @@ func (s *configureState) editColor(reader *bufio.Reader, key string) {
 	b.WriteString("  Or type: hex (#ff6b6b) or 256-color (196)\n")
 	b.WriteString("  0 to clear custom color, q to cancel\n\n")
 	b.WriteString("  Choice: ")
-	fmt.Print(b.String())
+	fmt.Print(strings.ReplaceAll(b.String(), "\n", "\r\n"))
 
 	// Read input until Enter.
 	var input []byte
@@ -619,7 +619,7 @@ func (s *configureState) editFormatting(reader *bufio.Reader) {
 			b.WriteString(fmt.Sprintf("  [%s] %-10s (press %s)\n", check, item.label, item.hotkey))
 		}
 		b.WriteString("\n  Enter to confirm, q to cancel\n")
-		fmt.Print(b.String())
+		fmt.Print(strings.ReplaceAll(b.String(), "\n", "\r\n"))
 	}
 
 	renderFormatMenu()
@@ -664,7 +664,7 @@ func (s *configureState) editSeparator(reader *bufio.Reader) {
 	b.WriteString("\033[2J\033[H")
 	b.WriteString(fmt.Sprintf("  Current separator: %q\n", s.cfg.Separator))
 	b.WriteString("  Type new separator (Enter to confirm, q to cancel): ")
-	fmt.Print(b.String())
+	fmt.Print(strings.ReplaceAll(b.String(), "\n", "\r\n"))
 
 	var input []byte
 	for {
@@ -840,7 +840,9 @@ func (s *configureState) render() {
 		s.message = ""
 	}
 
-	fmt.Print(b.String())
+	// In raw mode, \n only moves down without returning to column 0.
+	// Replace \n with \r\n for proper line breaks.
+	fmt.Print(strings.ReplaceAll(b.String(), "\n", "\r\n"))
 }
 
 func (s *configureState) renderMessage(msg string) {
@@ -856,7 +858,7 @@ func (s *configureState) renderAddMenu(available []string) {
 		b.WriteString(fmt.Sprintf("  %2d. %s\n", i+1, name))
 	}
 	b.WriteString("\n  Enter number (or q to cancel): ")
-	fmt.Print(b.String())
+	fmt.Print(strings.ReplaceAll(b.String(), "\n", "\r\n"))
 }
 
 // deepCopyLines creates a deep copy of config lines for change detection.
