@@ -126,6 +126,21 @@ func RunConfigure(configDir string, allWidgetNames []string) error {
 		case 'r': // Remove row (if empty)
 			state.removeRow()
 
+		case 'c': // Edit foreground color
+			state.editColor(reader, "fg")
+
+		case 'B': // Edit background color
+			state.editColor(reader, "bg")
+
+		case 'f': // Toggle formatting
+			state.editFormatting(reader)
+
+		case '/': // Edit separator
+			state.editSeparator(reader)
+
+		case 'p': // Toggle powerline
+			state.togglePowerline()
+
 		case 's': // Save and quit
 			restoreTerminal()
 			if err := config.Save(configPath, cfg); err != nil {
@@ -415,6 +430,318 @@ func (s *configureState) addWidget(reader *bufio.Reader) {
 	s.message = fmt.Sprintf("Added %s", widgetName)
 }
 
+// namedColors maps picker number to color name.
+var namedColors = []string{"red", "green", "yellow", "blue", "magenta", "cyan", "white", "dim", "gray"}
+
+func (s *configureState) currentWidgetName() (string, bool) {
+	if len(s.cfg.Lines) == 0 {
+		return "", false
+	}
+	row := s.cfg.Lines[s.cursorRow].Widgets
+	if len(row) == 0 {
+		return "", false
+	}
+	return row[s.cursorCol], true
+}
+
+func (s *configureState) ensureWidgetMap(name string) {
+	if s.cfg.Widgets == nil {
+		s.cfg.Widgets = make(map[string]map[string]interface{})
+	}
+	if s.cfg.Widgets[name] == nil {
+		s.cfg.Widgets[name] = make(map[string]interface{})
+	}
+}
+
+func (s *configureState) editColor(reader *bufio.Reader, key string) {
+	name, ok := s.currentWidgetName()
+	if !ok {
+		s.message = "No widget selected."
+		return
+	}
+
+	label := "foreground"
+	if key == "bg" {
+		label = "background"
+	}
+
+	// Determine current value.
+	current := "(default)"
+	if s.cfg.Widgets != nil && s.cfg.Widgets[name] != nil {
+		if v, exists := s.cfg.Widgets[name][key]; exists {
+			if str, ok := v.(string); ok && str != "" {
+				current = str
+			}
+		}
+	}
+
+	// Render color picker.
+	var b strings.Builder
+	b.WriteString("\033[2J\033[H")
+	b.WriteString(fmt.Sprintf("  Set %s color for: %s\n", label, name))
+	b.WriteString(fmt.Sprintf("  Current: %s\n\n", current))
+	b.WriteString("  Named colors:\n")
+	b.WriteString("    1. red     2. green   3. yellow  4. blue\n")
+	b.WriteString("    5. magenta 6. cyan    7. white   8. dim    9. gray\n\n")
+	b.WriteString("  Or type: hex (#ff6b6b) or 256-color (196)\n")
+	b.WriteString("  0 to clear custom color, q to cancel\n\n")
+	b.WriteString("  Choice: ")
+	fmt.Print(b.String())
+
+	// Read input until Enter.
+	var input []byte
+	for {
+		ch, err := reader.ReadByte()
+		if err != nil {
+			return
+		}
+		if ch == 13 || ch == 10 { // Enter
+			break
+		}
+		if ch == 27 || ch == 'q' { // ESC or q
+			s.message = "Color edit cancelled."
+			return
+		}
+		if ch == 127 || ch == 8 { // Backspace
+			if len(input) > 0 {
+				input = input[:len(input)-1]
+				fmt.Printf("\r\033[K  Choice: %s", string(input))
+			}
+			continue
+		}
+		input = append(input, ch)
+		fmt.Printf("%c", ch)
+	}
+
+	raw := strings.TrimSpace(string(input))
+	if raw == "" {
+		s.message = "Color edit cancelled."
+		return
+	}
+
+	s.ensureWidgetMap(name)
+
+	// Handle "0" — clear.
+	if raw == "0" {
+		delete(s.cfg.Widgets[name], key)
+		s.dirty = true
+		s.message = fmt.Sprintf("Cleared %s color for %s", label, name)
+		return
+	}
+
+	// Handle named color by number (1-9).
+	if num, err := strconv.Atoi(raw); err == nil && num >= 1 && num <= 9 {
+		s.cfg.Widgets[name][key] = namedColors[num-1]
+		s.dirty = true
+		s.message = fmt.Sprintf("Set %s %s = %s", name, label, namedColors[num-1])
+		return
+	}
+
+	// Handle hex color.
+	if strings.HasPrefix(raw, "#") {
+		if len(raw) != 7 {
+			s.message = "Invalid hex color. Expected format: #rrggbb"
+			return
+		}
+		// Validate hex digits.
+		valid := true
+		for _, c := range raw[1:] {
+			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+				valid = false
+				break
+			}
+		}
+		if !valid {
+			s.message = "Invalid hex color. Expected format: #rrggbb"
+			return
+		}
+		s.cfg.Widgets[name][key] = raw
+		s.dirty = true
+		s.message = fmt.Sprintf("Set %s %s = %s", name, label, raw)
+		return
+	}
+
+	// Handle 256-color number.
+	if num, err := strconv.Atoi(raw); err == nil && num >= 0 && num <= 255 {
+		s.cfg.Widgets[name][key] = raw
+		s.dirty = true
+		s.message = fmt.Sprintf("Set %s %s = %s", name, label, raw)
+		return
+	}
+
+	s.message = fmt.Sprintf("Invalid color: %s", raw)
+}
+
+func (s *configureState) editFormatting(reader *bufio.Reader) {
+	name, ok := s.currentWidgetName()
+	if !ok {
+		s.message = "No widget selected."
+		return
+	}
+
+	s.ensureWidgetMap(name)
+
+	// Track toggles locally, start from current config.
+	toggles := map[string]bool{
+		"bold":      false,
+		"dim":       false,
+		"italic":    false,
+		"underline": false,
+	}
+	for k := range toggles {
+		if v, exists := s.cfg.Widgets[name][k]; exists {
+			if bval, ok := v.(bool); ok {
+				toggles[k] = bval
+			}
+		}
+	}
+
+	renderFormatMenu := func() {
+		var b strings.Builder
+		b.WriteString("\033[2J\033[H")
+		b.WriteString(fmt.Sprintf("  Formatting for: %s\n\n", name))
+
+		items := []struct {
+			key   string
+			label string
+			hotkey string
+		}{
+			{"bold", "bold", "b"},
+			{"dim", "dim", "d"},
+			{"italic", "italic", "i"},
+			{"underline", "underline", "u"},
+		}
+		for _, item := range items {
+			check := " "
+			if toggles[item.key] {
+				check = "x"
+			}
+			b.WriteString(fmt.Sprintf("  [%s] %-10s (press %s)\n", check, item.label, item.hotkey))
+		}
+		b.WriteString("\n  Enter to confirm, q to cancel\n")
+		fmt.Print(b.String())
+	}
+
+	renderFormatMenu()
+
+	for {
+		ch, err := reader.ReadByte()
+		if err != nil {
+			return
+		}
+		switch ch {
+		case 'b':
+			toggles["bold"] = !toggles["bold"]
+		case 'd':
+			toggles["dim"] = !toggles["dim"]
+		case 'i':
+			toggles["italic"] = !toggles["italic"]
+		case 'u':
+			toggles["underline"] = !toggles["underline"]
+		case 13, 10: // Enter — confirm
+			for k, v := range toggles {
+				if v {
+					s.cfg.Widgets[name][k] = true
+				} else {
+					delete(s.cfg.Widgets[name], k)
+				}
+			}
+			s.dirty = true
+			s.message = fmt.Sprintf("Updated formatting for %s", name)
+			return
+		case 'q', 27: // q or ESC — cancel
+			s.message = "Formatting edit cancelled."
+			return
+		default:
+			continue
+		}
+		renderFormatMenu()
+	}
+}
+
+func (s *configureState) editSeparator(reader *bufio.Reader) {
+	var b strings.Builder
+	b.WriteString("\033[2J\033[H")
+	b.WriteString(fmt.Sprintf("  Current separator: %q\n", s.cfg.Separator))
+	b.WriteString("  Type new separator (Enter to confirm, q to cancel): ")
+	fmt.Print(b.String())
+
+	var input []byte
+	for {
+		ch, err := reader.ReadByte()
+		if err != nil {
+			return
+		}
+		if ch == 13 || ch == 10 { // Enter
+			break
+		}
+		if ch == 27 { // ESC
+			s.message = "Separator edit cancelled."
+			return
+		}
+		if ch == 127 || ch == 8 { // Backspace
+			if len(input) > 0 {
+				input = input[:len(input)-1]
+				fmt.Printf("\r\033[K  Type new separator (Enter to confirm, q to cancel): %s", string(input))
+			}
+			continue
+		}
+		// 'q' cancels only if input is empty (so user can type 'q' as part of separator).
+		if ch == 'q' && len(input) == 0 {
+			s.message = "Separator edit cancelled."
+			return
+		}
+		input = append(input, ch)
+		fmt.Printf("%c", ch)
+	}
+
+	s.cfg.Separator = string(input)
+	s.dirty = true
+	s.message = fmt.Sprintf("Separator set to %q", s.cfg.Separator)
+}
+
+func (s *configureState) togglePowerline() {
+	s.cfg.Powerline = !s.cfg.Powerline
+	s.dirty = true
+	if s.cfg.Powerline {
+		s.message = "Powerline: ON"
+	} else {
+		s.message = "Powerline: OFF"
+	}
+}
+
+// widgetStyleInfo returns a string like "[fg:#ff79c6 bg:#282a36 bold]" for the given widget.
+func (s *configureState) widgetStyleInfo(name string) string {
+	if s.cfg.Widgets == nil || s.cfg.Widgets[name] == nil {
+		return ""
+	}
+	wm := s.cfg.Widgets[name]
+
+	var parts []string
+	if v, ok := wm["fg"]; ok {
+		if str, ok := v.(string); ok && str != "" {
+			parts = append(parts, "fg:"+str)
+		}
+	}
+	if v, ok := wm["bg"]; ok {
+		if str, ok := v.(string); ok && str != "" {
+			parts = append(parts, "bg:"+str)
+		}
+	}
+	for _, attr := range []string{"bold", "dim", "italic", "underline"} {
+		if v, ok := wm[attr]; ok {
+			if bval, ok := v.(bool); ok && bval {
+				parts = append(parts, attr)
+			}
+		}
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+	return " [" + strings.Join(parts, " ") + "]"
+}
+
 func (s *configureState) render() {
 	var b strings.Builder
 
@@ -482,6 +809,7 @@ func (s *configureState) render() {
 		b.WriteString("  ←→ move widget  m/Enter confirm  \n")
 	} else {
 		b.WriteString("  ↑↓ row  ←→ widget  a add  d delete  m move\n")
+		b.WriteString("  c fg color  B bg color  f format  / sep  p powerline\n")
 		b.WriteString("  n new row  r remove row  s save  q quit\n")
 	}
 
@@ -493,10 +821,18 @@ func (s *configureState) render() {
 		if s.moveMode {
 			modeLabel = " \033[33mMOVE\033[0m"
 		}
-		b.WriteString(fmt.Sprintf("  Row %d, Col %d: \033[1m%s\033[0m%s\n", s.cursorRow+1, s.cursorCol+1, widgetName, modeLabel))
+		styleInfo := s.widgetStyleInfo(widgetName)
+		b.WriteString(fmt.Sprintf("  Row %d, Col %d: \033[1m%s\033[0m%s%s\n", s.cursorRow+1, s.cursorCol+1, widgetName, styleInfo, modeLabel))
 	} else {
 		b.WriteString(fmt.Sprintf("  Row %d (empty)\n", s.cursorRow+1))
 	}
+
+	// Show separator and powerline status.
+	plStatus := "OFF"
+	if s.cfg.Powerline {
+		plStatus = "ON"
+	}
+	b.WriteString(fmt.Sprintf("  sep: %q  powerline: %s\n", s.cfg.Separator, plStatus))
 
 	// Message line.
 	if s.message != "" {
