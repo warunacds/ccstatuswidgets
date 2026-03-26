@@ -62,15 +62,68 @@ func (w *NowPlayingWidget) getCurrentTrack(cfg map[string]interface{}) string {
 }
 
 func (w *NowPlayingWidget) macOSTrack() string {
-	// Try Spotify first
-	script := `tell application "Spotify" to artist of current track & " - " & name of current track`
+	// Try each media app in order. Use System Events to check if running
+	// first, avoiding launching apps that aren't open.
+
+	// Spotify
+	script := `tell application "System Events"
+	if exists (processes whose name is "Spotify") then
+		tell application "Spotify"
+			if player state is playing then
+				return artist of current track & " - " & name of current track
+			end if
+		end tell
+	end if
+end tell
+return ""`
 	text := w.runCommand("osascript", "-e", script)
 	if text != "" {
 		return text
 	}
 
-	// Fall back to Music.app
-	script = `tell application "Music" to artist of current track & " - " & name of current track`
+	// Music.app
+	script = `tell application "System Events"
+	if exists (processes whose name is "Music") then
+		tell application "Music"
+			if player state is playing then
+				return artist of current track & " - " & name of current track
+			end if
+		end tell
+	end if
+end tell
+return ""`
+	text = w.runCommand("osascript", "-e", script)
+	if text != "" {
+		return text
+	}
+
+	// Podcasts.app
+	script = `tell application "System Events"
+	if exists (processes whose name is "Podcasts") then
+		tell application "Podcasts"
+			if player state is playing then
+				return name of current episode
+			end if
+		end tell
+	end if
+end tell
+return ""`
+	text = w.runCommand("osascript", "-e", script)
+	if text != "" {
+		return text
+	}
+
+	// TV.app (for video content)
+	script = `tell application "System Events"
+	if exists (processes whose name is "TV") then
+		tell application "TV"
+			if player state is playing then
+				return name of current track
+			end if
+		end tell
+	end if
+end tell
+return ""`
 	return w.runCommand("osascript", "-e", script)
 }
 
