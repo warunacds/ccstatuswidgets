@@ -20,7 +20,7 @@ func (w *SessionNameWidget) Render(input *protocol.StatusLineInput, cfg map[stri
 
 	maxLength := 32
 	if cfg != nil {
-		if ml, ok := cfg["max_length"].(float64); ok && ml > 0 {
+		if ml, ok := cfg["max_length"].(float64); ok && ml >= 1 {
 			maxLength = int(ml)
 		}
 	}

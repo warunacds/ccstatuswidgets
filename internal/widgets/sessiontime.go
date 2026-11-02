@@ -16,10 +16,11 @@ func (w *SessionTimeWidget) Name() string {
 }
 
 func (w *SessionTimeWidget) Render(input *protocol.StatusLineInput, cfg map[string]interface{}) (*protocol.WidgetOutput, error) {
-	elapsed := time.Duration(input.Cost.TotalDurationMs) * time.Millisecond
-	if elapsed < 0 {
+	// Zero means the field is missing (older Claude Code); hide rather than show "0m" forever.
+	if input.Cost.TotalDurationMs <= 0 {
 		return nil, nil
 	}
+	elapsed := time.Duration(input.Cost.TotalDurationMs) * time.Millisecond
 	totalMinutes := int(elapsed.Minutes())
 	hours := totalMinutes / 60
 	minutes := totalMinutes % 60

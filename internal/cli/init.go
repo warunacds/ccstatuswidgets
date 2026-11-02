@@ -101,16 +101,18 @@ func patchClaudeSettings() error {
 
 	settingsPath := filepath.Join(home, ".claude", "settings.json")
 
-	if _, err := os.Stat(settingsPath); os.IsNotExist(err) {
-		return nil // skip silently
-	}
-
 	exePath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("could not determine binary path: %w", err)
 	}
 
-	return patchSettingsFile(settingsPath, exePath)
+	if err := patchSettingsFile(settingsPath, exePath); err != nil {
+		if os.IsNotExist(err) {
+			return nil // skip silently
+		}
+		return err
+	}
+	return nil
 }
 
 // defaultRefreshInterval re-runs the status line every N seconds while the

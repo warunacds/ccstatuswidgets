@@ -59,17 +59,14 @@ func TestSessionTimeWidget_FormatsExactHours(t *testing.T) {
 	}
 }
 
-func TestSessionTimeWidget_ZeroDurationShowsZeroMinutes(t *testing.T) {
+func TestSessionTimeWidget_HidesWhenDurationMissing(t *testing.T) {
 	w := &SessionTimeWidget{}
 	out, err := w.Render(sessionTimeInput(0), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if out == nil {
-		t.Fatal("expected non-nil output")
-	}
-	if out.Text != "⏱ 0m" {
-		t.Errorf("expected %q, got %q", "⏱ 0m", out.Text)
+	if out != nil {
+		t.Errorf("expected nil output when total_duration_ms is absent, got %+v", out)
 	}
 }
 

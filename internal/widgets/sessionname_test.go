@@ -95,3 +95,10 @@ func TestSessionNameWidget_ReturnsNilWhenOnlyControlCharacters(t *testing.T) {
 		t.Errorf("expected nil output, got %+v", out)
 	}
 }
+
+func TestSessionNameWidget_IgnoresFractionalMaxLength(t *testing.T) {
+	// 0.5 truncates to 0 after int(); must fall back to the default instead of
+	// slicing runes[:-1] and panicking.
+	cfg := map[string]interface{}{"max_length": 0.5}
+	assertSessionName(t, "fix login bug", cfg, "fix login bug")
+}
