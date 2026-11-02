@@ -62,7 +62,7 @@ stdin JSON (from Claude Code)
 | `cmd/ccw` | Entry point, CLI routing | `main()`, `runPipeline()` |
 | `internal/protocol` | Data types | `StatusLineInput`, `WidgetOutput`, `ModelInfo`, `ContextInfo`, `RateLimits`, `CostInfo` |
 | `internal/widget` | Widget interface + registry | `Widget` interface (`Name()`, `Render()`), `Registry` (`Register`, `Get`, `Names`) |
-| `internal/widgets` | 23 built-in widget implementations | One file per widget, `RegisterAll()` in `register.go` |
+| `internal/widgets` | 27 built-in widget implementations | One file per widget, `RegisterAll()` in `register.go` |
 | `internal/engine` | Concurrent executor | `Engine.Run()` — goroutines per widget, timeout, cache fallback |
 | `internal/renderer` | ANSI output | `Render()`, `WidgetStyle`, `FgCode`/`BgCode`, Powerline mode |
 | `internal/cache` | File-based TTL cache | `Cache.Get()`, `Cache.Set()` — atomic writes in `~/.ccstatuswidgets/cache/` |
@@ -85,12 +85,12 @@ type Widget interface {
 - `cfg` is the per-widget config from `config.json` `widgets` map
 - For testability, widgets accept config overrides (e.g., `cfg["base_url"]`, `cfg["state_dir"]`)
 
-## All 23 Built-in Widgets
+## All 27 Built-in Widgets
 
 | Widget | File | Source | Notes |
 |--------|------|--------|-------|
 | model | model.go | stdin | Display name, magenta |
-| effort | effort.go | file | Reads ~/.claude/settings*.json |
+| effort | effort.go | stdin | `effort.level`, falls back to ~/.claude/settings*.json |
 | directory | directory.go | stdin | Basename of cwd, cyan |
 | git-branch | gitbranch.go | git cmd | Branch name in parens, yellow |
 | git-status | gitstatus.go | git cmd | ✓ clean or ✎ 3M 2U dirty |
@@ -100,7 +100,7 @@ type Widget interface {
 | usage-7d | usage.go | stdin | Bar + pace tracking |
 | tokens | tokens.go | stdin | ↑12.4k ↓8.2k, uses formatTokenCount |
 | total-tokens | totaltokens.go | stdin | Combined count, shares formatTokenCount |
-| session-time | sessiontime.go | ps cmd | ⏱ 1h23m, reads parent process start |
+| session-time | sessiontime.go | stdin | ⏱ 1h23m from `cost.total_duration_ms` |
 | lines-changed | lines.go | stdin | Raw ANSI green/red |
 | cost | cost.go | stdin | Detects Max plan via RateLimits != nil |
 | memory | memory.go | ps cmd | RSS in MB, cfg["pid"] for testing |
@@ -112,6 +112,10 @@ type Widget interface {
 | cricket | cricket.go | HTTP | ESPN free API, no key needed |
 | moon | moon.go | computation | Synodic month algorithm |
 | pomodoro | pomodoro.go | file | Reads ~/.ccstatuswidgets/pomodoro.json |
+| session-name | sessionname.go | stdin | `session_name`, truncated to `max_length` (32) |
+| pr | pr.go | stdin | `pr.number` + review state glyph, MR label for GitLab |
+| prompt-cache | promptcache.go | stdin | `cache 91%`, dim + `cold` when not warm |
+| fast-mode | fastmode.go | stdin | `⚡ fast` when `fast_mode` is true |
 
 ## CLI Commands
 
@@ -190,8 +194,9 @@ CI: `.github/workflows/release.yml` — builds 4 binaries (darwin/linux × amd64
 - **Atomic cache writes** — temp file + rename to prevent corruption
 - **Raw ANSI passthrough** — widgets like stocks/lines-changed embed their own ANSI, renderer passes through
 - **Plugin protocol** — same Widget interface, ExternalWidget adapter handles stdin/stdout piping
-- **ccw init preserves config** — only writes defaults if config.json doesn't exist
-- **Session time timezone** — `time.ParseInLocation` for ps output (local time, not UTC)
+- **ccw init preserves config** — only writes defaults if config.json doesn't exist; keeps existing `statusLine` keys like `padding`
+- **Stdin over shelling out** — effort and session-time read Claude Code's stdin fields (`effort.level`, `cost.total_duration_ms`) instead of settings files / `ps`
+- **refreshInterval** — `ccw init` sets `statusLine.refreshInterval: 5` (kept if the user already set one) because the status line is otherwise event-driven and timers freeze while idle
 - **Flight providers** — supports both AviationStack and AeroDataBox via `provider` config key
 
 ## Common Patterns
