@@ -8,7 +8,8 @@ import (
 	"github.com/warunacds/ccstatuswidgets/internal/protocol"
 )
 
-// EffortWidget displays the configured effort level from Claude settings.
+// EffortWidget displays the session's effort level. Claude Code sends it on stdin
+// as effort.level; older versions don't, so fall back to the settings files.
 type EffortWidget struct{}
 
 func (w *EffortWidget) Name() string {
@@ -16,15 +17,20 @@ func (w *EffortWidget) Name() string {
 }
 
 func (w *EffortWidget) Render(input *protocol.StatusLineInput, cfg map[string]interface{}) (*protocol.WidgetOutput, error) {
-	settingsDir := w.settingsDir(cfg)
-
-	// Read settings.json first, then overlay settings.local.json.
 	effort := ""
-	if e := readEffortLevel(filepath.Join(settingsDir, "settings.json")); e != "" {
-		effort = e
+	if input.Effort != nil {
+		effort = input.Effort.Level
 	}
-	if e := readEffortLevel(filepath.Join(settingsDir, "settings.local.json")); e != "" {
-		effort = e
+
+	// Fallback: read settings.json first, then overlay settings.local.json.
+	if effort == "" {
+		settingsDir := w.settingsDir(cfg)
+		if e := readEffortLevel(filepath.Join(settingsDir, "settings.json")); e != "" {
+			effort = e
+		}
+		if e := readEffortLevel(filepath.Join(settingsDir, "settings.local.json")); e != "" {
+			effort = e
+		}
 	}
 
 	if effort == "" {

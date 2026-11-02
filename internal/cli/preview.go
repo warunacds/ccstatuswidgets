@@ -36,9 +36,14 @@ func RunPreview() error {
 		},
 		Cost: protocol.CostInfo{
 			TotalCostUSD:      1.47,
+			TotalDurationMs:   (1*60 + 23) * 60 * 1000,
 			TotalLinesAdded:   342,
 			TotalLinesRemoved: 87,
 		},
+		SessionName: "statusline protocol update",
+		Effort:      &protocol.EffortInfo{Level: "high"},
+		PromptCache: &protocol.PromptCache{Warm: true, CachingObserved: true, HitRatio: 0.91},
+		PR:          &protocol.PRInfo{Number: 42, ReviewState: "pending"},
 	}
 
 	// Load config (falls back to defaults if no config file exists).

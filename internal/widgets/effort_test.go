@@ -15,6 +15,36 @@ func TestEffortWidget_Name(t *testing.T) {
 	}
 }
 
+func TestEffortWidget_PrefersStdinOverSettings(t *testing.T) {
+	tmpDir := t.TempDir()
+	settingsPath := filepath.Join(tmpDir, "settings.json")
+	if err := os.WriteFile(settingsPath, []byte(`{"effortLevel":"low"}`), 0644); err != nil {
+		t.Fatalf("failed to write settings.json: %v", err)
+	}
+
+	w := &EffortWidget{}
+	input := &protocol.StatusLineInput{
+		Effort: &protocol.EffortInfo{Level: "xhigh"},
+	}
+	cfg := map[string]interface{}{
+		"settings_dir": tmpDir,
+	}
+
+	out, err := w.Render(input, cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out == nil {
+		t.Fatal("expected non-nil output")
+	}
+	if out.Text != "(xhigh)" {
+		t.Errorf("expected text %q, got %q", "(xhigh)", out.Text)
+	}
+	if out.Color != "dim" {
+		t.Errorf("expected color %q, got %q", "dim", out.Color)
+	}
+}
+
 func TestEffortWidget_ReturnsEffortFromSettingsJSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	settingsPath := filepath.Join(tmpDir, "settings.json")
