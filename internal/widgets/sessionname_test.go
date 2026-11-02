@@ -66,3 +66,32 @@ func assertSessionName(t *testing.T, name string, cfg map[string]interface{}, wa
 		t.Errorf("expected color %q, got %q", "blue", out.Color)
 	}
 }
+
+func TestSessionNameWidget_StripsControlCharacters(t *testing.T) {
+	w := &SessionNameWidget{}
+	input := &protocol.StatusLineInput{SessionName: "fix\x1b[31m login\x07 bug\u0085"}
+
+	out, err := w.Render(input, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out == nil {
+		t.Fatal("expected non-nil output")
+	}
+	if out.Text != "fix[31m login bug" {
+		t.Errorf("expected control characters stripped, got %q", out.Text)
+	}
+}
+
+func TestSessionNameWidget_ReturnsNilWhenOnlyControlCharacters(t *testing.T) {
+	w := &SessionNameWidget{}
+	input := &protocol.StatusLineInput{SessionName: "\x1b\x07"}
+
+	out, err := w.Render(input, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != nil {
+		t.Errorf("expected nil output, got %+v", out)
+	}
+}
