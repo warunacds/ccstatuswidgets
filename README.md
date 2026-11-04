@@ -61,7 +61,7 @@ That's it. Start Claude Code and the status line appears automatically.
 ### What `ccw init` does
 
 1. Creates `~/.ccstatuswidgets/` with default config
-2. Patches `~/.claude/settings.json` to point `statusLine.command` to `ccw`
+2. Patches `~/.claude/settings.json` to point `statusLine.command` to `ccw` (and sets `refreshInterval: 5` so timers keep ticking while idle)
 3. Sets up cache and plugin directories
 
 ### Updating
@@ -94,20 +94,24 @@ ccw init
 | Widget | Output | Description |
 |--------|--------|-------------|
 | `model` | `Opus 4.6` | Current model display name |
-| `effort` | `(high)` | Effort level from Claude settings |
+| `effort` | `(high)` | Session effort level (from Claude Code, falls back to settings files) |
 | `directory` | `myproject` | Basename of working directory |
 | `git-branch` | `(main)` | Current git branch |
 | `git-status` | `✓` or `✎ 3M 2U` | Working tree status (modified/untracked/added/deleted) |
 | `git-diff` | `staged: 4 files` | Staged changes count |
 | `tokens` | `↑12.4k ↓8.2k` | Input/output token counts |
 | `total-tokens` | `20.6k tokens` | Combined token count |
-| `session-time` | `⏱ 1h23m` | Elapsed session time |
+| `session-time` | `⏱ 1h23m` | Session duration (accumulates across resumes) |
 | `context-bar` | `ctx ████░░░░░░ 35%` | Context window usage bar |
 | `usage-5h` | `5h ██░░░░░░░░ 22% -8% ↻2h30m` | 5-hour rate limit with pace tracking |
 | `usage-7d` | `7d █░░░░░░░░░ 8% -21% ↻3d1h` | 7-day rate limit with pace tracking |
 | `lines-changed` | `+342 -87` | Lines added (green) / removed (red) |
 | `cost` | `api eq. $1.47` | Session cost (detects Max plan) |
 | `memory` | `542MB` | Parent process memory |
+| `session-name` | `fix login bug` | Session name (`--name`, `/rename`, or AI title) |
+| `pr` | `PR #42 ○` | Open PR/MR for the branch with review state (✓ approved, ✗ changes requested, ○ pending) |
+| `prompt-cache` | `cache 91%` / `cache 91% cold` | Prompt cache hit ratio and warm/cold state |
+| `fast-mode` | `⚡ fast` | Shown when fast mode is on |
 
 ### Fun Widgets
 

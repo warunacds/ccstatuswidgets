@@ -101,11 +101,30 @@ func patchClaudeSettings() error {
 
 	settingsPath := filepath.Join(home, ".claude", "settings.json")
 
-	data, err := os.ReadFile(settingsPath)
+	exePath, err := os.Executable()
 	if err != nil {
+		return fmt.Errorf("could not determine binary path: %w", err)
+	}
+
+	if err := patchSettingsFile(settingsPath, exePath); err != nil {
 		if os.IsNotExist(err) {
 			return nil // skip silently
 		}
+		return err
+	}
+	return nil
+}
+
+// defaultRefreshInterval re-runs the status line every N seconds while the
+// session is idle, so time-based widgets (pomodoro, session-time) keep moving.
+const defaultRefreshInterval = 5
+
+// patchSettingsFile sets statusLine.type/command in the settings file at path,
+// keeping any other statusLine keys the user set. refreshInterval is added only
+// when absent.
+func patchSettingsFile(settingsPath, exePath string) error {
+	data, err := os.ReadFile(settingsPath)
+	if err != nil {
 		return err
 	}
 
@@ -114,15 +133,16 @@ func patchClaudeSettings() error {
 		return fmt.Errorf("invalid JSON in %s: %w", settingsPath, err)
 	}
 
-	exePath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("could not determine binary path: %w", err)
+	statusLine, _ := settings["statusLine"].(map[string]interface{})
+	if statusLine == nil {
+		statusLine = map[string]interface{}{}
 	}
-
-	settings["statusLine"] = map[string]interface{}{
-		"type":    "command",
-		"command": exePath,
+	statusLine["type"] = "command"
+	statusLine["command"] = exePath
+	if _, ok := statusLine["refreshInterval"]; !ok {
+		statusLine["refreshInterval"] = defaultRefreshInterval
 	}
+	settings["statusLine"] = statusLine
 
 	out, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {

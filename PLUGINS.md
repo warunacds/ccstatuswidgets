@@ -110,7 +110,7 @@ Every plugin must have a `plugin.json` at the repository root.
 ### Name Rules
 
 - Use lowercase with hyphens: `my-widget`, `weather-extended`, `cpu-temp`
-- Cannot conflict with built-in names: `model`, `effort`, `directory`, `git-branch`, `context-bar`, `tokens`, `session-time`, `usage-5h`, `usage-7d`, `lines-changed`, `git-status`, `cost`, `memory`, `weather`, `now-playing`, `flight`, `cricket`, `stocks`, `hackernews`, `moon`, `pomodoro`, `total-tokens`, `git-diff`
+- Cannot conflict with built-in names: `model`, `effort`, `directory`, `git-branch`, `context-bar`, `tokens`, `session-time`, `usage-5h`, `usage-7d`, `lines-changed`, `git-status`, `cost`, `memory`, `weather`, `now-playing`, `flight`, `cricket`, `stocks`, `hackernews`, `moon`, `pomodoro`, `total-tokens`, `git-diff`, `session-name`, `pr`, `prompt-cache`, `fast-mode`
 - `ccw plugin add` will reject plugins with conflicting names
 
 ---
@@ -150,13 +150,33 @@ Your plugin receives a `StatusLineInput` JSON object on stdin. This is the same 
   },
   "cost": {
     "total_cost_usd": 105.81,
+    "total_duration_ms": 4980000,
     "total_lines_added": 19361,
     "total_lines_removed": 761
   },
   "session_id": "abc123",
-  "version": "1.0.85"
+  "session_name": "fix login bug",
+  "version": "2.1.316",
+  "effort": { "level": "high" },
+  "fast_mode": false,
+  "prompt_cache": {
+    "warm": true,
+    "caching_observed": true,
+    "ttl": "1h",
+    "expires_at": 1711303600,
+    "requests": 14,
+    "misses": 2,
+    "hit_ratio": 0.91
+  },
+  "pr": {
+    "number": 42,
+    "url": "https://github.com/you/project/pull/42",
+    "review_state": "pending"
+  }
 }
 ```
+
+`session_name`, `effort`, `prompt_cache` and `pr` are `null` when Claude Code did not send them (no name set, model without effort, before the first API response, no open PR).
 
 **Important:** You must read stdin even if you don't use it. If you don't consume stdin, the engine's pipe may block. The simplest approach:
 

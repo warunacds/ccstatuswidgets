@@ -30,4 +30,10 @@ func RegisterAll(r *widget.Registry) {
 	r.Register(&TokensWidget{})
 	r.Register(&TotalTokensWidget{})
 	r.Register(&GitDiffWidget{})
+
+	// Phase 4 widgets (newer Claude Code stdin fields).
+	r.Register(&PRWidget{})
+	r.Register(&SessionNameWidget{})
+	r.Register(&PromptCacheWidget{})
+	r.Register(&FastModeWidget{})
 }
