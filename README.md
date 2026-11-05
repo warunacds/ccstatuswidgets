@@ -112,6 +112,7 @@ ccw init
 | `pr` | `PR #42 ○` | Open PR/MR for the branch with review state (✓ approved, ✗ changes requested, ○ pending) |
 | `prompt-cache` | `cache 91%` / `cache 91% cold` | Prompt cache hit ratio and warm/cold state |
 | `fast-mode` | `⚡ fast` | Shown when fast mode is on |
+| `plan` | `Ultra` | Claude subscription plan (Free/Pro/Max/Ultra), read from `~/.claude.json`; hidden for API key users |
 
 ### Fun Widgets
 

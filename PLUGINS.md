@@ -110,7 +110,7 @@ Every plugin must have a `plugin.json` at the repository root.
 ### Name Rules
 
 - Use lowercase with hyphens: `my-widget`, `weather-extended`, `cpu-temp`
-- Cannot conflict with built-in names: `model`, `effort`, `directory`, `git-branch`, `context-bar`, `tokens`, `session-time`, `usage-5h`, `usage-7d`, `lines-changed`, `git-status`, `cost`, `memory`, `weather`, `now-playing`, `flight`, `cricket`, `stocks`, `hackernews`, `moon`, `pomodoro`, `total-tokens`, `git-diff`, `session-name`, `pr`, `prompt-cache`, `fast-mode`
+- Cannot conflict with built-in names: `model`, `effort`, `directory`, `git-branch`, `context-bar`, `tokens`, `session-time`, `usage-5h`, `usage-7d`, `lines-changed`, `git-status`, `cost`, `memory`, `weather`, `now-playing`, `flight`, `cricket`, `stocks`, `hackernews`, `moon`, `pomodoro`, `total-tokens`, `git-diff`, `session-name`, `pr`, `prompt-cache`, `fast-mode`, `plan`
 - `ccw plugin add` will reject plugins with conflicting names
 
 ---
