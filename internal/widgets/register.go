@@ -36,4 +36,5 @@ func RegisterAll(r *widget.Registry) {
 	r.Register(&SessionNameWidget{})
 	r.Register(&PromptCacheWidget{})
 	r.Register(&FastModeWidget{})
+	r.Register(&PlanWidget{})
 }

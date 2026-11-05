@@ -62,7 +62,7 @@ stdin JSON (from Claude Code)
 | `cmd/ccw` | Entry point, CLI routing | `main()`, `runPipeline()` |
 | `internal/protocol` | Data types | `StatusLineInput`, `WidgetOutput`, `ModelInfo`, `ContextInfo`, `RateLimits`, `CostInfo` |
 | `internal/widget` | Widget interface + registry | `Widget` interface (`Name()`, `Render()`), `Registry` (`Register`, `Get`, `Names`) |
-| `internal/widgets` | 27 built-in widget implementations | One file per widget, `RegisterAll()` in `register.go` |
+| `internal/widgets` | 28 built-in widget implementations | One file per widget, `RegisterAll()` in `register.go` |
 | `internal/engine` | Concurrent executor | `Engine.Run()` — goroutines per widget, timeout, cache fallback |
 | `internal/renderer` | ANSI output | `Render()`, `WidgetStyle`, `FgCode`/`BgCode`, Powerline mode |
 | `internal/cache` | File-based TTL cache | `Cache.Get()`, `Cache.Set()` — atomic writes in `~/.ccstatuswidgets/cache/` |
@@ -85,7 +85,7 @@ type Widget interface {
 - `cfg` is the per-widget config from `config.json` `widgets` map
 - For testability, widgets accept config overrides (e.g., `cfg["base_url"]`, `cfg["state_dir"]`)
 
-## All 27 Built-in Widgets
+## All 28 Built-in Widgets
 
 | Widget | File | Source | Notes |
 |--------|------|--------|-------|
@@ -116,6 +116,7 @@ type Widget interface {
 | pr | pr.go | stdin | `pr.number` + review state glyph, MR label for GitLab |
 | prompt-cache | promptcache.go | stdin | `cache 91%`, dim + `cold` when not warm |
 | fast-mode | fastmode.go | stdin | `⚡ fast` when `fast_mode` is true |
+| plan | plan.go | file | `oauthAccount.planDisplayName` from ~/.claude.json, cfg["state_file"] for testing |
 
 ## CLI Commands
 
